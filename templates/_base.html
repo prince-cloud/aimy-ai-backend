@@ -42,7 +42,7 @@
             <a class="nav-link active" aria-current="page" href="{% url 'home' %}">Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'about' %}">About</a>
+            <!-- <a class="nav-link" href="{% url 'about' %}">About</a> -->
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/admin/" target="_blank">Admin</a>
@@ -71,12 +71,12 @@
           </ul>
         </div>
         {% else %}
-        <div class="mr-auto">
+        <!-- <div class="mr-auto">
           <form class="form d-flex">
             <a href="{% url 'account_login' %}" class="btn btn-outline-secondary">Log in</a>
             <a href="{% url 'account_signup' %}" class="btn btn-primary ms-2">Sign up</a>
           </form>
-        </div>
+        </div> -->
         {% endif %}
       </div>
     </div>
@@ -92,11 +92,11 @@
     <div class="container">
       <div class="row">
         <div class="col-md-6">
-          <h6 class="text-primary">Aimy AI</h6>
-          <p class="text-muted small">Your Intelligent Academic Assistant for KNUST AIM APP</p>
+          <h6 class="text-primary text-white">Aimy AI</h6>
+          <p class=" small text-white">Your Intelligent Academic Assistant for KNUST AIM APP</p>
         </div>
         <div class="col-md-6 text-md-end">
-          <p class="text-muted small mb-0">&copy; 2024 Aimy AI. All rights reserved.</p>
+          <p class="text-white small mb-0">&copy; 2024 Aimy AI. All rights reserved.</p>
         </div>
       </div>
     </div>
