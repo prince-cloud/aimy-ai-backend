@@ -304,8 +304,8 @@ REST_AUTH = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "BackOffice",
-    "DESCRIPTION": ("Api Documentation for AIMY AI. @Copyright PRINCE ACHEAMPONG."),
+    "TITLE": "AIMY AI Documentation",
+    "DESCRIPTION": ("Api Documentation for AIMY AI"),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
@@ -427,8 +427,12 @@ CELERY_TASK_ALWAYS_EAGER = as_bool(
 
 
 UNFOLD = {
-    "SITE_TITLE": "BACK OFFICE",
-    "SITE_HEADER": "AIMY AI",
+    "SITE_TITLE": "Aimy AI Admin",
+    "SITE_HEADER": "Aimy AI Administration",
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+    },
     "COLORS": {
         "font": {
             "subtle-light": "107 114 128",
@@ -439,17 +443,17 @@ UNFOLD = {
             "important-dark": "243 244 246",
         },
         "primary": {
-            "50": "250 245 255",
-            "100": "243 232 255",
-            "200": "233 213 255",
-            "300": "216 180 254",
-            "400": "192 132 252",
-            "500": "168 85 247",
-            "600": "198 27 34",
-            "700": "126 34 206",
-            "800": "107 33 168",
-            "900": "88 28 135",
-            "950": "59 7 100",
+            "50": "254 242 242",
+            "100": "254 226 226",
+            "200": "254 202 202",
+            "300": "252 165 165",
+            "400": "248 113 113",
+            "500": "239 68 68",
+            "600": "148 6 6",  # #940606 - Your specified red
+            "700": "185 28 28",
+            "800": "153 27 27",
+            "900": "127 29 29",
+            "950": "69 10 10",
         },
     },
 }

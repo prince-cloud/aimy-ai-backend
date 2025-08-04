@@ -1,7 +1,612 @@
 {% extends '_base.html' %}
+{% load static %}
 
-{% block title %}About page{% endblock %}
+{% block title %}About Aimy AI{% endblock %}
 
 {% block content %}
-<h1>About page</h1>
+<div class="about-container">
+  <!-- Hero Section -->
+  <div class="about-hero">
+    <div class="hero-background">
+      <div class="floating-particles"></div>
+    </div>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+          <h1 class="about-title gradient-text">About Aimy AI</h1>
+          <p class="about-subtitle">Your Intelligent Academic Assistant for KNUST AIM APP</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mission Section -->
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="mission-card">
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <h2 class="gradient-text mb-4">Our Mission</h2>
+            <p class="mission-text">
+              Aimy AI is designed to revolutionize the academic experience for students at KNUST (Kwame Nkrumah University of Science and Technology)
+              through intelligent AI-powered assistance and personalized learning support.
+            </p>
+            <p class="mission-description">
+              We believe that every student deserves access to cutting-edge technology that can enhance their learning journey,
+              track their progress, and provide personalized recommendations to help them achieve their academic goals.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Grid -->
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="section-title text-center mb-5">
+          <h2 class="gradient-text">Core Capabilities</h2>
+          <p class="text-muted">Discover what makes Aimy AI revolutionary</p>
+        </div>
+        <div class="features-grid">
+          <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+            <div class="feature-icon">
+              <i class="fas fa-brain"></i>
+            </div>
+            <h3>AI-Powered Learning</h3>
+            <p>Our advanced AI algorithms analyze your study patterns, performance data, and learning preferences
+            to provide personalized recommendations and insights.</p>
+            <div class="feature-glow"></div>
+          </div>
+
+          <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+            <div class="feature-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3>Performance Tracking</h3>
+            <p>Comprehensive analytics and performance tracking help you understand your strengths,
+            identify areas for improvement, and track your academic progress over time.</p>
+            <div class="feature-glow"></div>
+          </div>
+
+          <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+            <div class="feature-icon">
+              <i class="fas fa-file-alt"></i>
+            </div>
+            <h3>Smart Document Management</h3>
+            <p>Upload and organize your study materials with intelligent categorization.
+            Our AI processes your documents to enable smart Q&A and content discovery.</p>
+            <div class="feature-glow"></div>
+          </div>
+
+          <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+            <div class="feature-icon">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+            <h3>Schedule Management</h3>
+            <p>Intelligent class schedule tracking with smart reminders and notifications
+            to help you stay organized and never miss important academic events.</p>
+            <div class="feature-glow"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technology Stack -->
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="tech-stack-card">
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <h2 class="gradient-text mb-4">Technology Stack</h2>
+            <div class="tech-grid">
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fab fa-python"></i>
+                </div>
+                <h4>Python & Django</h4>
+                <p>Robust backend framework for scalable applications</p>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fas fa-robot"></i>
+                </div>
+                <h4>AI & Machine Learning</h4>
+                <p>Advanced algorithms for personalized learning</p>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">
+                  <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h4>Mobile-First Design</h4>
+                <p>Responsive design for all devices</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Section -->
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="team-card">
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <h2 class="gradient-text mb-4">Development Team</h2>
+            <p class="team-description">
+              Aimy AI is developed by a dedicated team of software engineers, AI researchers, and educational technology experts
+              committed to creating innovative solutions for academic excellence.
+            </p>
+            <div class="team-grid">
+              <div class="team-member">
+                <div class="member-avatar">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="member-info">
+                  <h4>Prince Acheampong</h4>
+                  <p>Lead Developer</p>
+                </div>
+              </div>
+              <div class="team-member">
+                <div class="member-avatar">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="member-info">
+                  <h4>KNUST AIM Team</h4>
+                  <p>Academic Partners</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Section -->
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 text-center">
+        <div class="contact-card">
+          <div class="card-glow"></div>
+          <div class="card-content">
+            <h2 class="gradient-text mb-4">Get in Touch</h2>
+            <p class="contact-description">
+              Have questions about Aimy AI? Want to contribute to the project?
+              We'd love to hear from you!
+            </p>
+            <div class="contact-buttons">
+              <a href="mailto:contact@aimyai.com" class="btn btn-primary btn-glow">
+                <span>Contact Us</span>
+                <div class="btn-glow-effect"></div>
+              </a>
+              <a href="https://github.com/aimyai" class="btn btn-outline-light">
+                GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Dark Theme Variables */
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-card: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --accent-primary: #00d4ff;
+  --accent-secondary: #ff6b6b;
+  --accent-tertiary: #4ecdc4;
+  --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  --gradient-secondary: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  --gradient-tertiary: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.about-container {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* About Hero */
+.about-hero {
+  position: relative;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.about-hero .hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.about-hero .floating-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 107, 107, 0.1) 0%, transparent 50%);
+  animation: float 20s ease-in-out infinite;
+}
+
+.about-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 2;
+}
+
+.about-subtitle {
+  font-size: 1.3rem;
+  color: var(--accent-primary);
+  margin-bottom: 2rem;
+  font-weight: 600;
+  position: relative;
+  z-index: 2;
+}
+
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Cards */
+.mission-card, .tech-stack-card, .team-card, .contact-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.mission-card:hover, .tech-stack-card:hover, .team-card:hover, .contact-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-glow);
+}
+
+.card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mission-card:hover .card-glow,
+.tech-stack-card:hover .card-glow,
+.team-card:hover .card-glow,
+.contact-card:hover .card-glow {
+  opacity: 0.05;
+}
+
+.card-content {
+  position: relative;
+  z-index: 2;
+}
+
+.mission-text {
+  font-size: 1.2rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+}
+
+.mission-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-glow);
+}
+
+.feature-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.feature-card:hover .feature-glow {
+  opacity: 0.05;
+}
+
+.feature-icon {
+  width: 60px;
+  height: 60px;
+  background: var(--gradient-primary);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.feature-card h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.feature-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Technology Stack */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.tech-item {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.tech-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--gradient-primary);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 2rem;
+  color: white;
+}
+
+.tech-item h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.tech-item p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Team Section */
+.team-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.team-member {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.member-avatar {
+  width: 60px;
+  height: 60px;
+  background: var(--gradient-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.member-info h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.member-info p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Contact Section */
+.contact-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.contact-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+  background: var(--gradient-primary);
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  color: white;
+  text-decoration: none;
+}
+
+.btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+  color: white;
+  text-decoration: none;
+}
+
+.btn-glow-effect {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-glow:hover .btn-glow-effect {
+  left: 100%;
+}
+
+.btn-outline-light {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-outline-light:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+/* Section Titles */
+.section-title h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.section-title p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .about-title {
+    font-size: 2.5rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Simple scroll animation
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.feature-card').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    card.style.transition = 'all 0.6s ease';
+    observer.observe(card);
+  });
+});
+</script>
 {% endblock content %}

@@ -1,11 +1,674 @@
 {% extends '_base.html' %}
 {% load static %}
 
-{% block title %}Home page{% endblock title %}
+{% block title %}Aimy AI Dashboard{% endblock title %}
 
 {% block content %}
-<div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
-  <img src="{% static 'images/logo.png' %}" class="img-fluid" alt="DjangoX logo"/>
-  <p class="lead">A Django starter project with batteries.</p>
+<!-- Hero Section with Animated Background -->
+<div class="hero-section">
+  <div class="hero-background">
+    <div class="floating-particles"></div>
+    <div class="neural-network"></div>
+  </div>
+  <div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+      <div class="col-lg-8 text-center">
+        <div class="hero-content">
+          <div class="ai-logo mb-4">
+            <div class="logo-glow"></div>
+            <img src="{% static 'images/logo.png' %}" class="logo-image" alt="Aimy AI Logo"/>
+          </div>
+          <h1 class="hero-title">
+            <span class="gradient-text">Aimy AI</span>
+          </h1>
+          <p class="hero-subtitle">Your Intelligent Academic Assistant</p>
+          <p class="hero-description">Empowering KNUST students with AI-driven learning, performance tracking, and personalized academic insights.</p>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-number">500+</span>
+              <span class="stat-label">Active Students</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">95%</span>
+              <span class="stat-label">Satisfaction</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">24/7</span>
+              <span class="stat-label">AI Support</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- Quick Access Cards -->
+<div class="container-fluid py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="section-title text-center mb-5">
+        <h2 class="gradient-text">Quick Access</h2>
+        <p class="text-muted">Navigate to essential tools and resources</p>
+      </div>
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="access-card admin-card" onclick="window.open('/admin/', '_blank')">
+            <div class="card-glow"></div>
+            <div class="card-content">
+              <div class="card-icon">
+                <i class="fas fa-cogs"></i>
+              </div>
+              <h3>Admin Dashboard</h3>
+              <p>System administration and management tools</p>
+              <div class="card-badge">Administrative</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="access-card api-card" onclick="window.open('/api/docs/', '_blank')">
+            <div class="card-glow"></div>
+            <div class="card-content">
+              <div class="card-icon">
+                <i class="fas fa-code"></i>
+              </div>
+              <h3>API Documentation</h3>
+              <p>Comprehensive API reference and testing</p>
+              <div class="card-badge">Developer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Grid -->
+<div class="container-fluid py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="section-title text-center mb-5">
+        <h2 class="gradient-text">AI-Powered Features</h2>
+        <p class="text-muted">Discover what makes Aimy AI revolutionary</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+          <div class="feature-icon">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <h3>Smart Schedule</h3>
+          <p>AI-powered class tracking with intelligent reminders and conflict detection</p>
+          <div class="feature-glow"></div>
+        </div>
+
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+          <div class="feature-icon">
+            <i class="fas fa-brain"></i>
+          </div>
+          <h3>AI Q&A</h3>
+          <p>Ask questions about your study materials and get intelligent, contextual answers</p>
+          <div class="feature-glow"></div>
+        </div>
+
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+          <div class="feature-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3>Performance Analytics</h3>
+          <p>Advanced analytics and insights to track your academic progress</p>
+          <div class="feature-glow"></div>
+        </div>
+
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+          <div class="feature-icon">
+            <i class="fas fa-file-upload"></i>
+          </div>
+          <h3>Document AI</h3>
+          <p>Upload slides, notes, PDFs and let AI process and organize them</p>
+          <div class="feature-glow"></div>
+        </div>
+
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
+          <div class="feature-icon">
+            <i class="fas fa-lightbulb"></i>
+          </div>
+          <h3>Smart Recommendations</h3>
+          <p>Personalized course suggestions based on performance analysis</p>
+          <div class="feature-glow"></div>
+        </div>
+
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="600">
+          <div class="feature-icon">
+            <i class="fas fa-graduation-cap"></i>
+          </div>
+          <h3>Study Assistant</h3>
+          <p>Comprehensive study tools with AI-powered learning optimization</p>
+          <div class="feature-glow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Visualization Section -->
+<div class="container-fluid py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="ai-visualization">
+        <div class="neural-network-animation">
+          <div class="node" style="--delay: 0s"></div>
+          <div class="node" style="--delay: 0.2s"></div>
+          <div class="node" style="--delay: 0.4s"></div>
+          <div class="node" style="--delay: 0.6s"></div>
+          <div class="node" style="--delay: 0.8s"></div>
+          <div class="node" style="--delay: 1s"></div>
+          <div class="node" style="--delay: 1.2s"></div>
+          <div class="node" style="--delay: 1.4s"></div>
+        </div>
+        <div class="visualization-content">
+          <h2 class="gradient-text">Powered by Advanced AI</h2>
+          <p>Our neural networks process your academic data to provide personalized insights and recommendations</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Call to Action -->
+<div class="container-fluid py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+      <div class="cta-section">
+        <h2 class="gradient-text mb-4">Ready to Transform Your Learning?</h2>
+        <p class="mb-4">Join thousands of KNUST students already using Aimy AI</p>
+        <div class="cta-buttons">
+          <a href="{% url 'account_signup' %}" class="btn btn-primary btn-glow">
+            <span>Get Started</span>
+            <div class="btn-glow-effect"></div>
+          </a>
+          <a href="{% url 'about' %}" class="btn btn-outline-light">
+            Learn More
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Dark Theme Variables */
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-card: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --accent-primary: #00d4ff;
+  --accent-secondary: #ff6b6b;
+  --accent-tertiary: #4ecdc4;
+  --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  --gradient-secondary: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  --gradient-tertiary: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Hero Section */
+.hero-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.floating-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 107, 107, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(78, 205, 196, 0.1) 0%, transparent 50%);
+  animation: float 20s ease-in-out infinite;
+}
+
+.neural-network {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(90deg, transparent 49%, rgba(0, 212, 255, 0.1) 50%, transparent 51%),
+    linear-gradient(0deg, transparent 49%, rgba(0, 212, 255, 0.1) 50%, transparent 51%);
+  background-size: 50px 50px;
+  animation: neuralMove 30s linear infinite;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.ai-logo {
+  position: relative;
+  display: inline-block;
+}
+
+.logo-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  background: var(--gradient-primary);
+  border-radius: 50%;
+  filter: blur(20px);
+  opacity: 0.3;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.logo-image {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-title {
+  font-size: 4rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 1.5rem;
+  color: var(--accent-primary);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Access Cards */
+.access-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.access-card:hover {
+  transform: translateY(-10px);
+  box-shadow: var(--shadow-glow);
+}
+
+.card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.access-card:hover .card-glow {
+  opacity: 0.1;
+}
+
+.card-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.card-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--gradient-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 2rem;
+  color: white;
+}
+
+.access-card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.access-card p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.card-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: var(--gradient-primary);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-glow);
+}
+
+.feature-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.feature-card:hover .feature-glow {
+  opacity: 0.05;
+}
+
+.feature-icon {
+  width: 60px;
+  height: 60px;
+  background: var(--gradient-primary);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.feature-card h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.feature-card p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* AI Visualization */
+.ai-visualization {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.neural-network-animation {
+  position: relative;
+  height: 200px;
+  margin-bottom: 2rem;
+}
+
+.node {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  animation: nodePulse 2s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+.node:nth-child(1) { top: 20%; left: 20%; }
+.node:nth-child(2) { top: 20%; left: 80%; }
+.node:nth-child(3) { top: 50%; left: 10%; }
+.node:nth-child(4) { top: 50%; left: 90%; }
+.node:nth-child(5) { top: 80%; left: 20%; }
+.node:nth-child(6) { top: 80%; left: 80%; }
+.node:nth-child(7) { top: 35%; left: 50%; }
+.node:nth-child(8) { top: 65%; left: 50%; }
+
+.visualization-content h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.visualization-content p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+/* CTA Section */
+.cta-section {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+  background: var(--gradient-primary);
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-glow-effect {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-glow:hover .btn-glow-effect {
+  left: 100%;
+}
+
+.btn-outline-light {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-light:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes neuralMove {
+  0% { transform: translateX(0) translateY(0); }
+  100% { transform: translateX(-50px) translateY(-50px); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.5; }
+}
+
+@keyframes nodePulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Section Titles */
+.section-title h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.section-title p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+</style>
+
+<script>
+// Add AOS (Animate On Scroll) library
+document.addEventListener('DOMContentLoaded', function() {
+  // Simple scroll animation
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.feature-card').forEach(card => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    card.style.transition = 'all 0.6s ease';
+    observer.observe(card);
+  });
+});
+</script>
 {% endblock content %}

@@ -1,0 +1,34 @@
+OTP Verification - Aimy AI
+================================
+
+Hello {{ user.first_name|default:user.username }},
+
+We received a request to verify your account. Please use the One-Time Password (OTP) below to complete your verification process.
+
+Your Verification Code: {{ otp_code }}
+
+This code will expire in 5 minutes for security reasons.
+
+How to use this code:
+- Enter the 6-digit code above in the verification field
+- Make sure to enter all digits correctly
+- Do not share this code with anyone
+- The code is case-sensitive
+
+🔒 Security Notice:
+If you didn't request this verification code, please ignore this email.
+Your account security is important to us. Never share your OTP with anyone,
+including Aimy AI support staff.
+
+If you have any questions or need assistance, please don't hesitate to contact our support team.
+
+Best regards,
+The Aimy AI Team
+
+================================
+Aimy AI - Your Intelligent Academic Assistant for KNUST AIM APP
+© 2024 Aimy AI. All rights reserved.
+
+Visit Website: {{ site_url }}
+Contact Support: support@aimyai.com
+Unsubscribe: {{ unsubscribe_url }}

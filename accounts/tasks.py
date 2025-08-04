@@ -1,23 +1,112 @@
-from django.core.mail import EmailMessage
 from celery import shared_task
 from django.conf import settings
 import requests
+from loguru import logger
+from jinja2 import Environment, FileSystemLoader
+import os
+from typing import Dict
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import strip_tags
 
 
 @shared_task
-def generic_send_mail(message, recipient_list, title):
-    from_email = settings.DEFAULT_FROM_EMAIL
+def generic_send_mail(
+    recipient, title, payload: Dict[str, str] = {}, template_type: str = "user"
+):
+    """
+    Send generic email using specified template type.
+
+    Args:
+        recipient: Email address of the recipient
+        title: Email subject
+        payload: Dictionary containing template variables
+        template_type: Either "user" or "admin" to specify which template to use
+    """
+    env = Environment(
+        loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates"))
+    )
+
+    # Choose template based on type
+    template = env.get_template("otp_email.html")
+
+    # Add current year to payload
+    from datetime import datetime
+
+    payload["current_year"] = datetime.now().year
+
+    html_message = template.render(payload)
+    logger.info(f"sending {template_type} email to {recipient}")
     try:
-        email = EmailMessage(
-            subject=title,
-            body=message,
-            from_email=from_email,
-            to=[recipient_list],
+        base_url = "https://0qmusixj1f.execute-api.us-east-1.amazonaws.com/sendEmail"
+        body = {
+            "recipient": recipient,
+            "subject": title,
+            "body": html_message,
+        }
+        email_send = requests.post(
+            base_url, json=body, headers={"Content-Type": "application/json"}
         )
-        email.send()
+        print("== response: ", email_send.text)
         return "Mail Sent"
     except Exception as e:
-        print("==== an error occured: ", str(e))
+        logger.warning(f"An error occurred sending email {str(e)}")
+
+
+@shared_task
+def send_otp_email(recipient_email: str, otp_code: str, user, site_url: str = None):
+    """
+    Send OTP verification email using custom template with KNUST branding.
+
+    Args:
+        recipient_email: Email address of the recipient
+        otp_code: The OTP code to send
+        user: User object for personalization
+        site_url: Website URL for footer links
+    """
+    try:
+        # Prepare template context
+        context = {
+            "user": user,
+            "otp_code": otp_code,
+            "site_url": site_url or "https://aimyai.com",
+            "unsubscribe_url": (
+                f"{site_url or 'https://aimyai.com'}/unsubscribe" if site_url else "#"
+            ),
+        }
+
+        # Render HTML template
+        html_content = render_to_string("otp_email.html", context)
+
+        # Render plain text template
+        text_content = render_to_string("otp_email.txt", context)
+
+        # Strip HTML tags for plain text
+        text_content = strip_tags(text_content)
+
+        # Create email message
+        subject = "OTP Verification - Aimy AI"
+        from_email = "noreply@aimyai.com"
+
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=from_email,
+            to=[recipient_email],
+        )
+
+        # Attach HTML version
+        msg.attach_alternative(html_content, "text/html")
+
+        # Send email
+        msg.send()
+
+        logger.info(f"OTP email sent successfully to {recipient_email}")
+        return "OTP Email Sent Successfully"
+
+    except Exception as e:
+        logger.error(f"Error sending OTP email to {recipient_email}: {str(e)}")
+        return f"Error sending OTP email: {str(e)}"
 
 
 # @celery_app.task
@@ -33,5 +122,6 @@ def generic_send_sms(to, body):
         headers = {"Content-Type": "application/json"}
         requests.request("GET", url, headers=headers)
         return "OTP Sent"
-    except:
+    except Exception as e:
+        logger.error(f"Error sending SMS to {to}: {str(e)}")
         return "An exception occurred while sending account activation code."
