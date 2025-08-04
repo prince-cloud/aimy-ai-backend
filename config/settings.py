@@ -130,9 +130,9 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB", "paperlessbranch"),
-            "USER": os.getenv("POSTGRES_USER", "admin"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "localhost"),
+            "NAME": os.getenv("POSTGRES_DB", "aimyai"),
+            "USER": os.getenv("POSTGRES_USER", "postgres"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "admin"),
             "HOST": os.getenv("POSTGRES_HOST", "db"),  # set in docker-compose.yml
             "PORT": int(os.getenv("POSTGRES_PORT", 5432)),  # default postgres port
             "OPTIONS": {"sslmode": os.getenv("PGSSLMODE", "prefer")},
@@ -304,11 +304,8 @@ REST_AUTH = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "PAPERLESS BRANCH API",
-    "DESCRIPTION": (
-        "Api Documentation for PAPERLESS BRANCH DONATION PLATFORM. @Copyright PRINCE ACHEAMPONG."
-        " Reach out to me on pacheampong227@gmail.com"
-    ),
+    "TITLE": "BackOffice",
+    "DESCRIPTION": ("Api Documentation for AIMY AI. @Copyright PRINCE ACHEAMPONG."),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
@@ -431,7 +428,7 @@ CELERY_TASK_ALWAYS_EAGER = as_bool(
 
 UNFOLD = {
     "SITE_TITLE": "BACK OFFICE",
-    "SITE_HEADER": "PAPERLESS BACK OFFICE ",
+    "SITE_HEADER": "AIMY AI",
     "COLORS": {
         "font": {
             "subtle-light": "107 114 128",
