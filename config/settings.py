@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     # Local
     "accounts",
     "pages",
+    "aimy",
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
@@ -424,6 +425,11 @@ if REDIS_USE_TLS:
 CELERY_TASK_ALWAYS_EAGER = as_bool(
     os.getenv("CELERY_TASK_ALWAYS_EAGER", default="False")
 )
+
+# OpenAI Configuration
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 
 
 UNFOLD = {

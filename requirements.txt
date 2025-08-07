@@ -76,3 +76,13 @@ vine==5.1.0
 virtualenv==20.33.0
 wcwidth==0.2.13
 whitenoise==6.9.0
+langchain==0.3.12
+langchain-openai==0.2.14
+langchain-community==0.3.12
+langchain-redis==0.2.14
+openai==1.58.1
+pypdf==4.3.0
+python-docx==1.1.2
+docx2txt==0.9
+chromadb==1.0.15
+tiktoken==0.7.0
