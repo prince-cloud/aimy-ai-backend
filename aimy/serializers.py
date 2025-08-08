@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Document, DocumentChunk, ChatSession, ChatMessage, ProcessingQueue
+from .models import Document, DocumentChunk, ChatSession, ChatMessage, ProcessingQueue, GenericFile
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -234,3 +234,91 @@ class SearchResultSerializer(serializers.Serializer):
     document_title = serializers.CharField()
     chunk_index = serializers.IntegerField()
     page_number = serializers.IntegerField(required=False)
+
+
+class GenericFileSerializer(serializers.ModelSerializer):
+    """Serializer for GenericFile model"""
+    
+    file_url = serializers.SerializerMethodField()
+    processing_status = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = GenericFile
+        fields = [
+            'id', 'title', 'description', 'file', 'file_url', 'file_size', 
+            'file_type', 'is_processed', 'processing_error', 'index_name',
+            'created_at', 'updated_at', 'processed_at', 'processing_status'
+        ]
+        read_only_fields = [
+            'file_hash', 'file_size', 'file_type', 'is_processed',
+            'processing_error', 'index_name', 'created_at', 'updated_at',
+            'processed_at'
+        ]
+    
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+        return None
+    
+    def get_processing_status(self, obj):
+        return 'completed' if obj.is_processed else 'failed' if obj.processing_error else 'pending'
+
+
+class GenericFileUploadSerializer(serializers.ModelSerializer):
+    """Serializer for generic file upload (admin only)"""
+    
+    class Meta:
+        model = GenericFile
+        fields = ['title', 'description', 'file']
+    
+    def validate_file(self, value):
+        # Check file size (20MB limit for generic files)
+        if value.size > 20 * 1024 * 1024:
+            raise serializers.ValidationError("File size must be less than 20MB")
+        
+        # Check file type
+        allowed_types = ['pdf', 'docx', 'txt', 'md', 'json', 'csv']
+        file_extension = value.name.split('.')[-1].lower()
+        if file_extension not in allowed_types:
+            raise serializers.ValidationError(
+                f"File type must be one of: {', '.join(allowed_types)}"
+            )
+        
+        return value
+    
+    def create(self, validated_data):
+        """Create generic file and process it"""
+        # Check if file with same hash already exists
+        file = self.context['request'].FILES.get('file')
+        if file:
+            import hashlib
+            hash_sha256 = hashlib.sha256()
+            for chunk in file.chunks():
+                hash_sha256.update(chunk)
+            file_hash = hash_sha256.hexdigest()
+            
+            # Check if file with same hash already exists
+            existing_file = GenericFile.objects.filter(file_hash=file_hash).first()
+            
+            if existing_file:
+                return existing_file
+        
+        # Create generic file
+        generic_file = GenericFile.objects.create(**validated_data)
+        
+        # Process the file (in production, use Celery)
+        try:
+            from .services import DocumentProcessingService
+            document_service = DocumentProcessingService()
+            success = document_service.process_generic_file(generic_file)
+            
+            if not success:
+                generic_file.processing_error = "Failed to process file"
+                generic_file.save()
+        except Exception as e:
+            generic_file.processing_error = str(e)
+            generic_file.save()
+        
+        return generic_file

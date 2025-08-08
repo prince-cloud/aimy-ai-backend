@@ -6,7 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 
 # Local imports
-from .models import Document, DocumentChunk, ChatSession, ProcessingQueue
+from .models import Document, DocumentChunk, ChatSession, ProcessingQueue, GenericFile
 from .serializers import (
     DocumentSerializer,
     DocumentUploadSerializer,
@@ -15,6 +15,8 @@ from .serializers import (
     AskQuestionSerializer,
     ProcessingQueueSerializer,
     DocumentSearchSerializer,
+    GenericFileSerializer,
+    GenericFileUploadSerializer,
 )
 from .services import DocumentProcessingService, ChatService
 from loguru import logger
@@ -595,6 +597,177 @@ class ReprocessDocumentView(APIView):
                 {
                     "status": "error",
                     "message": "Error reprocessing document",
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class GenericFileUploadView(APIView):
+    """API view for uploading generic files (admin only)"""
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    serializer_class = GenericFileUploadSerializer
+
+    def post(self, request):
+        """Upload a generic file (admin only)"""
+        # Check if user is admin
+        if not request.user.is_staff:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Only administrators can upload generic files"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            serializer = GenericFileUploadSerializer(
+                data=request.data, context={"request": request}
+            )
+            
+            if serializer.is_valid():
+                # Create generic file (duplicate check handled in serializer)
+                generic_file = serializer.save()
+                
+                return Response(
+                    {
+                        "status": "success",
+                        "message": "Generic file uploaded and processed successfully",
+                        "file": GenericFileSerializer(generic_file, context={"request": request}).data,
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+            
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Invalid data",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        except Exception as e:
+            logger.error(f"Error uploading generic file: {str(e)}")
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Internal server error",
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def get(self, request):
+        """Get all generic files (admin only)"""
+        # Check if user is admin
+        if not request.user.is_staff:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Only administrators can view generic files"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            generic_files = GenericFile.objects.all().order_by("-created_at")
+            serializer = GenericFileSerializer(
+                generic_files, many=True, context={"request": request}
+            )
+            
+            return Response(
+                {"status": "success", "files": serializer.data},
+                status=status.HTTP_200_OK,
+            )
+            
+        except Exception as e:
+            logger.error(f"Error fetching generic files: {str(e)}")
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Error fetching generic files",
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class GenericFileDetailView(APIView):
+    """API view for generic file details (admin only)"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = GenericFileSerializer
+
+    def get(self, request, file_id):
+        """Get generic file details (admin only)"""
+        # Check if user is admin
+        if not request.user.is_staff:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Only administrators can view generic file details"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            generic_file = GenericFile.objects.get(id=file_id)
+            serializer = GenericFileSerializer(generic_file, context={"request": request})
+            
+            return Response(
+                {"status": "success", "file": serializer.data},
+                status=status.HTTP_200_OK,
+            )
+            
+        except GenericFile.DoesNotExist:
+            return Response(
+                {"status": "error", "message": "Generic file not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error(f"Error fetching generic file: {str(e)}")
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Error fetching generic file",
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def delete(self, request, file_id):
+        """Delete generic file (admin only)"""
+        # Check if user is admin
+        if not request.user.is_staff:
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Only administrators can delete generic files"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            generic_file = GenericFile.objects.get(id=file_id)
+            generic_file.delete()
+            
+            return Response(
+                {"status": "success", "message": "Generic file deleted successfully"},
+                status=status.HTTP_200_OK,
+            )
+            
+        except GenericFile.DoesNotExist:
+            return Response(
+                {"status": "error", "message": "Generic file not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error(f"Error deleting generic file: {str(e)}")
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Error deleting generic file",
                     "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
