@@ -605,6 +605,7 @@ class ReprocessDocumentView(APIView):
 
 class GenericFileUploadView(APIView):
     """API view for uploading generic files (admin only)"""
+
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
     serializer_class = GenericFileUploadSerializer
@@ -616,29 +617,31 @@ class GenericFileUploadView(APIView):
             return Response(
                 {
                     "status": "error",
-                    "message": "Only administrators can upload generic files"
+                    "message": "Only administrators can upload generic files",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         try:
             serializer = GenericFileUploadSerializer(
                 data=request.data, context={"request": request}
             )
-            
+
             if serializer.is_valid():
                 # Create generic file (duplicate check handled in serializer)
                 generic_file = serializer.save()
-                
+
                 return Response(
                     {
                         "status": "success",
                         "message": "Generic file uploaded and processed successfully",
-                        "file": GenericFileSerializer(generic_file, context={"request": request}).data,
+                        "file": GenericFileSerializer(
+                            generic_file, context={"request": request}
+                        ).data,
                     },
                     status=status.HTTP_201_CREATED,
                 )
-            
+
             return Response(
                 {
                     "status": "error",
@@ -647,7 +650,7 @@ class GenericFileUploadView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-            
+
         except Exception as e:
             logger.error(f"Error uploading generic file: {str(e)}")
             return Response(
@@ -666,22 +669,22 @@ class GenericFileUploadView(APIView):
             return Response(
                 {
                     "status": "error",
-                    "message": "Only administrators can view generic files"
+                    "message": "Only administrators can view generic files",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         try:
             generic_files = GenericFile.objects.all().order_by("-created_at")
             serializer = GenericFileSerializer(
                 generic_files, many=True, context={"request": request}
             )
-            
+
             return Response(
                 {"status": "success", "files": serializer.data},
                 status=status.HTTP_200_OK,
             )
-            
+
         except Exception as e:
             logger.error(f"Error fetching generic files: {str(e)}")
             return Response(
@@ -696,6 +699,7 @@ class GenericFileUploadView(APIView):
 
 class GenericFileDetailView(APIView):
     """API view for generic file details (admin only)"""
+
     permission_classes = [IsAuthenticated]
     serializer_class = GenericFileSerializer
 
@@ -706,20 +710,22 @@ class GenericFileDetailView(APIView):
             return Response(
                 {
                     "status": "error",
-                    "message": "Only administrators can view generic file details"
+                    "message": "Only administrators can view generic file details",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         try:
             generic_file = GenericFile.objects.get(id=file_id)
-            serializer = GenericFileSerializer(generic_file, context={"request": request})
-            
+            serializer = GenericFileSerializer(
+                generic_file, context={"request": request}
+            )
+
             return Response(
                 {"status": "success", "file": serializer.data},
                 status=status.HTTP_200_OK,
             )
-            
+
         except GenericFile.DoesNotExist:
             return Response(
                 {"status": "error", "message": "Generic file not found"},
@@ -743,20 +749,20 @@ class GenericFileDetailView(APIView):
             return Response(
                 {
                     "status": "error",
-                    "message": "Only administrators can delete generic files"
+                    "message": "Only administrators can delete generic files",
                 },
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         try:
             generic_file = GenericFile.objects.get(id=file_id)
             generic_file.delete()
-            
+
             return Response(
                 {"status": "success", "message": "Generic file deleted successfully"},
                 status=status.HTTP_200_OK,
             )
-            
+
         except GenericFile.DoesNotExist:
             return Response(
                 {"status": "error", "message": "Generic file not found"},

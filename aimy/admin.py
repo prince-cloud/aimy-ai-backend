@@ -1,6 +1,14 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from .models import Document, DocumentChunk, ChatSession, ChatMessage, ProcessingQueue, GenericFile, GenericFileChunk
+from .models import (
+    Document,
+    DocumentChunk,
+    ChatSession,
+    ChatMessage,
+    ProcessingQueue,
+    GenericFile,
+    GenericFileChunk,
+)
 
 
 @admin.register(Document)
@@ -140,7 +148,13 @@ class GenericFileAdmin(ModelAdmin):
 
 @admin.register(GenericFileChunk)
 class GenericFileChunkAdmin(ModelAdmin):
-    list_display = ["generic_file", "chunk_index", "page_number", "content_preview", "created_at"]
+    list_display = [
+        "generic_file",
+        "chunk_index",
+        "page_number",
+        "content_preview",
+        "created_at",
+    ]
     list_filter = ["generic_file", "page_number", "created_at"]
     search_fields = ["content", "generic_file__title"]
     readonly_fields = ["vector_id", "created_at"]

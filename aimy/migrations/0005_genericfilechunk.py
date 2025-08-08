@@ -8,28 +8,59 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('aimy', '0004_genericfile'),
+        ("aimy", "0004_genericfile"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='GenericFileChunk',
+            name="GenericFileChunk",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content', models.TextField(help_text='Text content of the chunk')),
-                ('chunk_index', models.IntegerField(help_text='Order of chunk in file')),
-                ('page_number', models.IntegerField(blank=True, help_text='Page number if applicable', null=True)),
-                ('vector_id', models.CharField(help_text='Vector store ID', max_length=255, unique=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('uud', models.UUIDField(default=uuid.uuid4, editable=False, unique=True)),
-                ('generic_file', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='chunks', to='aimy.genericfile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("content", models.TextField(help_text="Text content of the chunk")),
+                (
+                    "chunk_index",
+                    models.IntegerField(help_text="Order of chunk in file"),
+                ),
+                (
+                    "page_number",
+                    models.IntegerField(
+                        blank=True, help_text="Page number if applicable", null=True
+                    ),
+                ),
+                (
+                    "vector_id",
+                    models.CharField(
+                        help_text="Vector store ID", max_length=255, unique=True
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "uud",
+                    models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+                ),
+                (
+                    "generic_file",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="chunks",
+                        to="aimy.genericfile",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Generic File Chunk',
-                'verbose_name_plural': 'Generic File Chunks',
-                'db_table': 'aimy_generic_file_chunk',
-                'ordering': ['generic_file', 'chunk_index'],
-                'unique_together': {('generic_file', 'chunk_index')},
+                "verbose_name": "Generic File Chunk",
+                "verbose_name_plural": "Generic File Chunks",
+                "db_table": "aimy_generic_file_chunk",
+                "ordering": ["generic_file", "chunk_index"],
+                "unique_together": {("generic_file", "chunk_index")},
             },
         ),
     ]

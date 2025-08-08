@@ -29,8 +29,15 @@ urlpatterns = [
     # path('documents/search/', views.DocumentSearchView.as_view(), name='document_search'),
     # Processing queue
     # path('processing-queue/', views.ProcessingQueueView.as_view(), name='processing_queue'),
-    
     # Generic files (admin only)
-    path('generic-files/', views.GenericFileUploadView.as_view(), name='generic_file_upload'),
-    path('generic-files/<int:file_id>/', views.GenericFileDetailView.as_view(), name='generic_file_detail'),
+    path(
+        "generic-files/",
+        views.GenericFileUploadView.as_view(),
+        name="generic_file_upload",
+    ),
+    path(
+        "generic-files/<int:file_id>/",
+        views.GenericFileDetailView.as_view(),
+        name="generic_file_detail",
+    ),
 ]

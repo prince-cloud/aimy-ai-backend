@@ -10,16 +10,16 @@ from langchain_openai import ChatOpenAI
 
 class KNUSTTools:
     """Tools for providing KNUST information and answering questions about KNUST"""
-    
+
     def __init__(self):
         self.knust_website = "https://www.knust.edu.gh/"
         self.knust_info = self._get_knust_basic_info()
         self.llm = ChatOpenAI(
-            model=getattr(settings, 'OPENAI_MODEL', 'gpt-3.5-turbo'),
-            openai_api_key=getattr(settings, 'OPENAI_API_KEY', ''),
-            temperature=0.3
+            model=getattr(settings, "OPENAI_MODEL", "gpt-3.5-turbo"),
+            openai_api_key=getattr(settings, "OPENAI_API_KEY", ""),
+            temperature=0.3,
         )
-    
+
     def _get_knust_basic_info(self) -> Dict:
         """Get basic KNUST information"""
         return {
@@ -32,15 +32,15 @@ class KNUSTTools:
             "contact": {
                 "phone": "+233 5000 99299",
                 "email": "uro@knust.edu.gh",
-                "gps_address": "AK-385-1973"
+                "gps_address": "AK-385-1973",
             },
             "colleges": [
                 "College of Science",
-                "College of Engineering", 
+                "College of Engineering",
                 "College of Art & Built Environment",
                 "College of Agric & Natural Resources",
                 "College of Health Sciences",
-                "College of Humanities & Social Sciences"
+                "College of Humanities & Social Sciences",
             ],
             "departments": [
                 "School of Graduate Studies",
@@ -48,67 +48,67 @@ class KNUSTTools:
                 "University Library",
                 "Office of Grants & Research",
                 "Quality Assurance & Planning",
-                "Human Resource Development"
+                "Human Resource Development",
             ],
             "services": [
                 "Students Portal",
-                "Staff Portal", 
+                "Staff Portal",
                 "Admissions Portal",
                 "E-Learning Centre",
                 "Library Services",
-                "Career Services Centre"
+                "Career Services Centre",
             ],
             "programs": {
                 "undergraduate": "Bachelor's degrees across all 6 colleges",
                 "graduate": "Master's degrees (MSc, MA, MPhil) and Doctoral programs (PhD)",
                 "distance_learning": "Institute of Distance Learning (IDL) with flexible learning options",
-                "research": "PhD programs across all colleges with research centers and institutes"
+                "research": "PhD programs across all colleges with research centers and institutes",
             },
             "admissions": {
                 "undergraduate": "Applications typically open from August to September",
                 "graduate": "School of Graduate Studies handles postgraduate applications",
                 "international": "International students have separate application processes",
-                "distance_learning": "Distance Learning programs available for working professionals"
+                "distance_learning": "Distance Learning programs available for working professionals",
             },
             "academic_calendar": "2024/2025 Academic Calendar available with semester-based academic year",
             "research_centers": [
                 "Office of Grants & Research (OGR)",
                 "Research funding opportunities",
                 "Research centers and institutes",
-                "Publication support"
+                "Publication support",
             ],
             "student_life": {
                 "accommodation": "Campus accommodation options available",
                 "sports": "Sports complexes and gymnasiums",
                 "facilities": "Modern lecture halls and laboratories",
-                "organizations": "Student organizations and clubs"
+                "organizations": "Student organizations and clubs",
             },
             "financial_aid": {
                 "scholarships": "Students' Financial Services Office (SFSO) offers various scholarships",
                 "bursaries": "Bursaries and financial aid opportunities",
-                "work_study": "Work-study opportunities available"
-            }
+                "work_study": "Work-study opportunities available",
+            },
         }
-    
+
     def get_knust_info(self, query: str) -> str:
         """Get intelligent KNUST information based on question intent"""
         try:
             # Use AI to understand the question and provide relevant information
             prompt = self._create_intelligent_prompt(query)
             response = self.llm.invoke(prompt)
-            
+
             return response.content.strip()
-            
+
         except Exception as e:
             logger.error(f"Error getting KNUST info: {str(e)}")
             # Fallback to general info if AI fails
             return self._get_general_info()
-    
+
     def _create_intelligent_prompt(self, query: str) -> str:
         """Create an intelligent prompt for understanding KNUST questions"""
         knust_data = json.dumps(self.knust_info, indent=2)
-        
-        return f"""You are a helpful assistant for Kwame Nkrumah University of Science and Technology (KNUST). 
+
+        return f"""You are a helpful assistant for Kwame Nkrumah University of Science and Technology (KNUST).
 You have access to comprehensive information about KNUST and should provide accurate, helpful responses.
 
 KNUST Information Database:
@@ -127,7 +127,7 @@ Instructions:
 8. If the question is too vague, ask for clarification
 
 Please provide a helpful response to the user's question about KNUST."""
-    
+
     def _get_contact_info(self) -> str:
         """Get KNUST contact information"""
         return f"""
@@ -141,10 +141,12 @@ Please provide a helpful response to the user's question about KNUST."""
 
 For specific inquiries, you can contact the University Relations Office (URO) at the provided email address.
         """.strip()
-    
+
     def _get_colleges_info(self) -> str:
         """Get information about KNUST colleges"""
-        colleges = "\n".join([f"• {college}" for college in self.knust_info['colleges']])
+        colleges = "\n".join(
+            [f"• {college}" for college in self.knust_info["colleges"]]
+        )
         return f"""
 **KNUST Colleges:**
 
@@ -154,7 +156,7 @@ KNUST has 6 main colleges offering various academic programs:
 
 Each college contains multiple departments and schools offering undergraduate and postgraduate programs in their respective fields of study.
         """.strip()
-    
+
     def _get_admission_info(self) -> str:
         """Get admission information"""
         return f"""
@@ -182,7 +184,7 @@ Each college contains multiple departments and schools offering undergraduate an
 📧 Email: uro@knust.edu.gh
 📞 Phone: {self.knust_info['contact']['phone']}
         """.strip()
-    
+
     def _get_programs_info(self) -> str:
         """Get information about academic programs"""
         return f"""
@@ -210,7 +212,7 @@ Each college contains multiple departments and schools offering undergraduate an
 
 For specific program details, visit the official website or contact the respective college/department.
         """.strip()
-    
+
     def _get_academic_services_info(self) -> str:
         """Get information about academic services"""
         return f"""
@@ -245,7 +247,7 @@ For specific program details, visit the official website or contact the respecti
 • Digital learning resources
 • Technology-enhanced teaching
         """.strip()
-    
+
     def _get_student_services_info(self) -> str:
         """Get information about student services"""
         return f"""
@@ -281,7 +283,7 @@ For specific program details, visit the official website or contact the respecti
 • Student centers and cafeterias
 • Transportation services
         """.strip()
-    
+
     def _get_staff_info(self) -> str:
         """Get information about staff services"""
         return f"""
@@ -315,7 +317,7 @@ For specific program details, visit the official website or contact the respecti
 📧 Email: hr@knust.edu.gh
 📞 Phone: {self.knust_info['contact']['phone']}
         """.strip()
-    
+
     def _get_general_info(self) -> str:
         """Get general KNUST information"""
         return f"""
@@ -346,7 +348,7 @@ KNUST is one of Ghana's premier universities, specializing in science and techno
 
 For more specific information, please ask about admissions, programs, colleges, or any particular aspect of the university.
         """.strip()
-    
+
     def search_knust_website(self, query: str) -> Optional[str]:
         """Search KNUST website for specific information (placeholder)"""
         try:
@@ -357,7 +359,7 @@ For more specific information, please ask about admissions, programs, colleges, 
         except Exception as e:
             logger.error(f"Error searching KNUST website: {str(e)}")
             return None
-    
+
     def get_current_news(self) -> str:
         """Get current KNUST news and announcements"""
         return """
@@ -371,7 +373,7 @@ For more specific information, please ask about admissions, programs, colleges, 
 
 For the latest news and announcements, visit the official KNUST website or contact the University Relations Office.
         """.strip()
-    
+
     def is_knust_related_question(self, question: str) -> bool:
         """Intelligently check if a question is related to KNUST"""
         try:
@@ -391,22 +393,37 @@ Respond with ONLY "YES" if the question is KNUST-related, or "NO" if it's not.""
 
             response = self.llm.invoke(prompt)
             result = response.content.strip().upper()
-            
+
             return result == "YES"
-            
+
         except Exception as e:
             logger.error(f"Error checking KNUST relation: {str(e)}")
             # Fallback to keyword-based detection
             knust_keywords = [
-                'knust', 'kwame nkrumah', 'kumasi', 'ghana university',
-                'admission', 'apply', 'college', 'faculty', 'program',
-                'student', 'staff', 'library', 'research', 'campus',
-                'lecture', 'exam', 'course', 'degree', 'scholarship'
+                "knust",
+                "kwame nkrumah",
+                "kumasi",
+                "ghana university",
+                "admission",
+                "apply",
+                "college",
+                "faculty",
+                "program",
+                "student",
+                "staff",
+                "library",
+                "research",
+                "campus",
+                "lecture",
+                "exam",
+                "course",
+                "degree",
+                "scholarship",
             ]
-            
+
             question_lower = question.lower()
             return any(keyword in question_lower for keyword in knust_keywords)
 
 
 # Create a global instance
-knust_tools = KNUSTTools() 
+knust_tools = KNUSTTools()

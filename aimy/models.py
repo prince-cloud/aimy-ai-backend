@@ -234,20 +234,25 @@ class ProcessingQueue(models.Model):
 
 class GenericFile(models.Model):
     """Model for admin-uploaded generic files for general knowledge"""
+
     FILE_TYPE_CHOICES = [
-        ('pdf', 'PDF'),
-        ('docx', 'Word Document'),
-        ('txt', 'Text File'),
-        ('md', 'Markdown'),
-        ('json', 'JSON'),
-        ('csv', 'CSV'),
+        ("pdf", "PDF"),
+        ("docx", "Word Document"),
+        ("txt", "Text File"),
+        ("md", "Markdown"),
+        ("json", "JSON"),
+        ("csv", "CSV"),
     ]
-    
+
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     file = models.FileField(
-        upload_to='generic_files/',
-        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'docx', 'txt', 'md', 'json', 'csv'])]
+        upload_to="generic_files/",
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=["pdf", "docx", "txt", "md", "json", "csv"]
+            )
+        ],
     )
     file_type = models.CharField(max_length=10, choices=FILE_TYPE_CHOICES)
     file_size = models.BigIntegerField(default=0)
@@ -259,37 +264,41 @@ class GenericFile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     uud = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    
+
     class Meta:
-        db_table = 'aimy_generic_file'
-        verbose_name = 'Generic File'
-        verbose_name_plural = 'Generic Files'
-        ordering = ['-created_at']
-    
+        db_table = "aimy_generic_file"
+        verbose_name = "Generic File"
+        verbose_name_plural = "Generic Files"
+        ordering = ["-created_at"]
+
     def __str__(self):
         return self.title
-    
+
     def save(self, *args, **kwargs):
         if not self.file_hash:
             self.file_hash = self._calculate_file_hash()
         if not self.file_size:
             self.file_size = self.file.size if self.file else 0
         if not self.file_type:
-            self.file_type = os.path.splitext(self.file.name)[1].lower().replace('.', '') if self.file else ""
+            self.file_type = (
+                os.path.splitext(self.file.name)[1].lower().replace(".", "")
+                if self.file
+                else ""
+            )
         if not self.index_name:
             self.index_name = f"generic_{self.file_hash[:16]}"
         super().save(*args, **kwargs)
-    
+
     def _calculate_file_hash(self):
         """Calculate SHA256 hash of file content"""
         if not self.file:
             return ""
-        
+
         hash_sha256 = hashlib.sha256()
         for chunk in self.file.chunks():
             hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
-    
+
     def get_file_path(self):
         """Get absolute file path"""
         if not self.file:
@@ -298,9 +307,12 @@ class GenericFile(models.Model):
             return self.file.path
         except Exception as e:
             from loguru import logger
-            logger.error(f"Error getting file path for generic file {self.id}: {str(e)}")
+
+            logger.error(
+                f"Error getting file path for generic file {self.id}: {str(e)}"
+            )
             return None
-    
+
     def is_file_accessible(self):
         """Check if the file is accessible"""
         file_path = self.get_file_path()
@@ -311,7 +323,7 @@ class GenericFile(models.Model):
 
 class GenericFileChunk(models.Model):
     """Model to store generic file chunks for vector search"""
-    
+
     generic_file = models.ForeignKey(
         GenericFile,
         related_name="chunks",
@@ -322,21 +334,21 @@ class GenericFileChunk(models.Model):
     page_number = models.IntegerField(
         null=True, blank=True, help_text="Page number if applicable"
     )
-    
+
     # Vector store metadata
     vector_id = models.CharField(
         max_length=255, unique=True, help_text="Vector store ID"
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     uud = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    
+
     class Meta:
         ordering = ["generic_file", "chunk_index"]
         unique_together = ["generic_file", "chunk_index"]
-        db_table = 'aimy_generic_file_chunk'
-        verbose_name = 'Generic File Chunk'
-        verbose_name_plural = 'Generic File Chunks'
-    
+        db_table = "aimy_generic_file_chunk"
+        verbose_name = "Generic File Chunk"
+        verbose_name_plural = "Generic File Chunks"
+
     def __str__(self):
         return f"Chunk {self.chunk_index} of {self.generic_file.title}"
