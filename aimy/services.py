@@ -112,64 +112,64 @@ class DocumentProcessingService:
                     }
                 )
 
-            # Try to create vector store with chunks
+            # Try to create vector store with chunks - prioritize Chroma over Redis
             vector_store = None
             vector_store_type = None
 
-            # Try Redis first
+            # Try Chroma first (prioritized over Redis)
             try:
                 logger.info(
-                    f"Attempting to create Redis vector store with index: {document.index_name}"
+                    f"Attempting to create Chroma vector store for document: {document.id}"
                 )
-                config = RedisConfig(
-                    index_name=document.index_name,
-                    redis_url=REDIS_URL,
-                    metadata_schema=[
-                        {"name": "document_id", "type": "tag"},
-                        {"name": "chunk_index", "type": "tag"},
-                        {"name": "page_number", "type": "tag"},
-                    ],
+                vector_store = Chroma.from_documents(
+                    documents=chunks,
+                    embedding=self.embeddings,
+                    collection_name=f"doc_{document.id}",
                 )
-                vector_store = RedisVectorStore(self.embeddings, config=config)
-                vector_store_type = "redis"
+                vector_store_type = "chroma"
                 logger.info(
-                    f"Redis vector store created successfully for index: {document.index_name}"
+                    f"Chroma vector store created successfully for document: {document.id}"
                 )
-            except Exception as vector_error:
+            except Exception as chroma_error:
                 logger.warning(
-                    f"Redis vector store creation failed: {str(vector_error)}"
+                    f"Chroma vector store creation failed: {str(chroma_error)}"
                 )
-                logger.warning(f"Redis error type: {type(vector_error).__name__}")
-                logger.warning(f"Redis error details: {str(vector_error)}")
+                logger.warning(f"Chroma error type: {type(chroma_error).__name__}")
+                logger.warning(f"Chroma error details: {str(chroma_error)}")
                 import traceback
 
-                logger.warning(f"Redis error traceback: {traceback.format_exc()}")
+                logger.warning(f"Chroma error traceback: {traceback.format_exc()}")
 
-                # Fallback to Chroma vector store
+                # Fallback to Redis vector store
                 try:
                     logger.info(
-                        f"Attempting to create Chroma vector store for document: {document.id}"
+                        f"Attempting to create Redis vector store with index: {document.index_name}"
                     )
-                    vector_store = Chroma.from_documents(
-                        documents=chunks,
-                        embedding=self.embeddings,
-                        collection_name=f"doc_{document.id}",
+                    config = RedisConfig(
+                        index_name=document.index_name,
+                        redis_url=REDIS_URL,
+                        metadata_schema=[
+                            {"name": "document_id", "type": "tag"},
+                            {"name": "chunk_index", "type": "tag"},
+                            {"name": "page_number", "type": "tag"},
+                        ],
                     )
-                    vector_store_type = "chroma"
+                    vector_store = RedisVectorStore(self.embeddings, config=config)
+                    vector_store_type = "redis"
                     logger.info(
-                        f"Chroma vector store created successfully for document: {document.id}"
+                        f"Redis vector store created successfully for index: {document.index_name}"
                     )
-                except Exception as chroma_error:
+                except Exception as redis_error:
                     logger.error(
-                        f"Chroma vector store creation failed: {str(chroma_error)}"
+                        f"Redis vector store creation failed: {str(redis_error)}"
                     )
-                    logger.error(f"Chroma error type: {type(chroma_error).__name__}")
-                    logger.error(f"Chroma error details: {str(chroma_error)}")
+                    logger.error(f"Redis error type: {type(redis_error).__name__}")
+                    logger.error(f"Redis error details: {str(redis_error)}")
                     import traceback
 
-                    logger.error(f"Chroma error traceback: {traceback.format_exc()}")
+                    logger.error(f"Redis error traceback: {traceback.format_exc()}")
                     raise Exception(
-                        f"Vector store creation error (both Redis and Chroma failed): {str(vector_error)} -> {str(chroma_error)}"
+                        f"Vector store creation error (both Chroma and Redis failed): {str(chroma_error)} -> {str(redis_error)}"
                     )
 
             if vector_store is None:
@@ -371,38 +371,40 @@ class DocumentProcessingService:
                     }
                 )
 
-            # Try Redis first, fallback to Chroma
+            # Try Chroma first (prioritized over Redis), fallback to Redis
             vector_store = None
             try:
-                # Try Redis
-                vector_store = RedisVectorStore.from_documents(
+                # Try Chroma first
+                vector_store = Chroma.from_documents(
                     documents=chunks,
                     embedding=self.embeddings,
-                    redis_url=REDIS_URL,
-                    index_name=generic_file.index_name,
-                    key_prefix=f"generic_{generic_file.id}_",
+                    collection_name=f"generic_{generic_file.id}",
                 )
                 logger.info(
-                    f"Successfully created Redis vector store for generic file {generic_file.id}"
+                    f"Successfully created Chroma vector store for generic file {generic_file.id}"
                 )
-            except Exception as redis_error:
-                logger.error(f"Redis vector store creation failed: {str(redis_error)}")
+            except Exception as chroma_error:
+                logger.error(
+                    f"Chroma vector store creation failed: {str(chroma_error)}"
+                )
                 try:
-                    # Fallback to Chroma
-                    _ = Chroma.from_documents(
+                    # Fallback to Redis
+                    vector_store = RedisVectorStore.from_documents(
                         documents=chunks,
                         embedding=self.embeddings,
-                        collection_name=generic_file.index_name,
+                        redis_url=REDIS_URL,
+                        index_name=generic_file.index_name,
+                        key_prefix=f"generic_{generic_file.id}_",
                     )
                     logger.info(
-                        f"Successfully created Chroma vector store for generic file {generic_file.id}"
+                        f"Successfully created Redis vector store for generic file {generic_file.id}"
                     )
-                except Exception as chroma_error:
+                except Exception as redis_error:
                     logger.error(
-                        f"Chroma vector store creation failed: {str(chroma_error)}"
+                        f"Redis vector store creation failed: {str(redis_error)}"
                     )
                     raise Exception(
-                        f"Vector store creation error (both Redis and Chroma failed): {str(redis_error)} -> {str(chroma_error)}"
+                        f"Vector store creation error (both Chroma and Redis failed): {str(chroma_error)} -> {str(redis_error)}"
                     )
 
             # Update generic file status
@@ -526,6 +528,9 @@ class ChatService:
             # Get vector stores for the specific document only
             vector_stores = self._get_vector_stores(user_id, document_id)
             if not vector_stores:
+                logger.warning(
+                    f"No vector stores available for user {user_id}, document {document_id}"
+                )
                 return self._create_error_response(
                     f"No document with ID {document_id} available for search"
                 )
@@ -586,6 +591,9 @@ class ChatService:
             # Get vector stores for the session's document only
             vector_stores = self._get_vector_stores(user_id, document_id)
             if not vector_stores:
+                logger.warning(
+                    f"No vector stores available for user {user_id}, session document {document_id}"
+                )
                 return self._create_error_response(
                     f"No document available for this session"
                 )
@@ -642,10 +650,22 @@ class ChatService:
     ) -> Dict[str, Any]:
         """Handle general questions using all available sources"""
         try:
+            # Check if it's a mathematical question first
+            if self._is_mathematical_question(question):
+                return self._handle_mathematical_question(question, session, user_id)
+
+            # Check if it's a KNUST-specific question
+            if self._is_knust_specific_question(question):
+                return self._handle_knust_question(question, session, user_id)
+
             # Get all available vector stores (user documents + generic files)
             vector_stores = self._get_vector_stores(user_id, None)
             if not vector_stores:
-                return self._create_error_response("No documents available for search")
+                logger.warning(f"No vector stores available for user {user_id}")
+                # Fallback to general knowledge when no vector stores available
+                return self._handle_general_knowledge_question(
+                    question, session, user_id, temperature
+                )
 
             # Search for relevant content across all sources
             relevant_docs = self._search_documents(question, vector_stores, max_results)
@@ -698,6 +718,7 @@ class ChatService:
             vector_stores = self._get_generic_files_vector_stores()
 
             if not vector_stores:
+                logger.warning("No generic files vector stores available")
                 # No generic files available, try KNUST tools first, then general knowledge
                 if self._is_knust_specific_question(question):
                     return self._handle_knust_question(question, session, user_id)
@@ -817,6 +838,205 @@ class ChatService:
         question_lower = question.lower()
         return any(keyword in question_lower for keyword in knust_specific_keywords)
 
+    def _is_mathematical_question(self, question: str) -> bool:
+        """Check if a question is mathematical in nature"""
+        import re
+
+        # Mathematical operators and patterns
+        math_patterns = [
+            r"[\+\-\*\/\^\(\)]",  # Basic operators
+            r"\d+\s*[\+\-\*\/\^]\s*\d+",  # Number operations
+            r"calculate|compute|solve|evaluate|sum|add|subtract|multiply|divide",
+            r"what is \d+[\+\-\*\/]\d+",
+            r"\d+\s*plus\s*\d+|\d+\s*minus\s*\d+|\d+\s*times\s*\d+|\d+\s*divided by\s*\d+",
+            r"percentage|percent|%",
+            r"square root|sqrt",
+            r"power|exponent",
+            r"equation|formula",
+            r"how much is|what\'s|what is \d+",
+            r"\d+\s*[\+\-\*\/]\s*\d+",  # Simple arithmetic like "1+1"
+        ]
+
+        question_lower = question.lower()
+
+        # Check for mathematical patterns
+        for pattern in math_patterns:
+            if re.search(pattern, question_lower):
+                return True
+
+        # Check for simple arithmetic expressions (just numbers and operators)
+        if re.search(r"^\s*\d+\s*[\+\-\*\/]\s*\d+\s*$", question.strip()):
+            return True
+
+        # Check for questions that start with numbers and operators
+        if re.search(r"^\s*\d+[\+\-\*\/]", question.strip()):
+            return True
+
+        return False
+
+    def _handle_mathematical_question(
+        self, question: str, session: ChatSession, user_id: int
+    ) -> Dict[str, Any]:
+        """Handle mathematical questions using safe evaluation"""
+        try:
+            import re
+            import ast
+
+            # Clean the question and extract mathematical expression
+            question_lower = question.lower()
+
+            # Handle common mathematical phrases
+            if "what is" in question_lower:
+                # Extract the mathematical part after "what is"
+                math_part = question_lower.split("what is")[-1].strip()
+            elif "what's" in question_lower:
+                # Extract the mathematical part after "what's"
+                math_part = question_lower.split("what's")[-1].strip()
+            elif "how much is" in question_lower:
+                # Extract the mathematical part after "how much is"
+                math_part = question_lower.split("how much is")[-1].strip()
+            elif "calculate" in question_lower:
+                # Extract the mathematical part after "calculate"
+                math_part = question_lower.split("calculate")[-1].strip()
+            else:
+                # Try to extract mathematical expression directly
+                math_part = question.strip()
+
+            # Replace word operators with symbols
+            math_part = re.sub(r"\s+plus\s+", "+", math_part)
+            math_part = re.sub(r"\s+minus\s+", "-", math_part)
+            math_part = re.sub(r"\s+times\s+", "*", math_part)
+            math_part = re.sub(r"\s+multiplied by\s+", "*", math_part)
+            math_part = re.sub(r"\s+divided by\s+", "/", math_part)
+            math_part = re.sub(r"\s+over\s+", "/", math_part)
+
+            # Remove non-mathematical characters except operators and numbers
+            math_part = re.sub(r"[^\d\+\-\*\/\(\)\.\s]", "", math_part)
+            math_part = math_part.strip()
+
+            # Validate the expression is safe (only contains allowed characters)
+            if not re.match(r"^[\d\+\-\*\/\(\)\.\s]+$", math_part):
+                raise ValueError("Invalid mathematical expression")
+
+            # Evaluate the expression safely
+            try:
+                # Use a safer approach for mathematical evaluation
+                if (
+                    "+" in math_part
+                    or "-" in math_part
+                    or "*" in math_part
+                    or "/" in math_part
+                ):
+                    # Simple arithmetic evaluation with additional safety checks
+                    # Only allow basic arithmetic operations
+                    allowed_chars = set("0123456789+-*/(). ")
+                    if not all(c in allowed_chars for c in math_part):
+                        raise ValueError(
+                            "Invalid characters in mathematical expression"
+                        )
+
+                    # Check for division by zero
+                    if "/" in math_part and "0" in math_part.split("/")[1].split()[0]:
+                        raise ZeroDivisionError("Division by zero")
+
+                    result = eval(
+                        math_part
+                    )  # Note: eval is used here for mathematical expressions only
+                else:
+                    result = float(math_part)
+
+                # Format the result appropriately
+                if isinstance(result, int):
+                    answer = f"The answer is {result}"
+                elif isinstance(result, float):
+                    # Round to 2 decimal places for cleaner output
+                    answer = f"The answer is {result:.2f}"
+                else:
+                    answer = f"The answer is {result}"
+
+            except (ValueError, ZeroDivisionError, SyntaxError) as e:
+                answer = f"I cannot evaluate that mathematical expression: {str(e)}"
+
+            # Save messages
+            _ = ChatMessage.objects.create(
+                session=session, message_type="user", content=question
+            )
+
+            assistant_message = ChatMessage.objects.create(
+                session=session,
+                message_type="assistant",
+                content=answer,
+                confidence_score=0.95,  # High confidence for mathematical answers
+                tokens_used=len(answer.split()),  # Approximate token count
+            )
+
+            # Update session
+            session.last_message_at = timezone.now()
+            session.save()
+
+            return {
+                "answer": answer,
+                "confidence_score": 0.95,
+                "session_id": session.id,
+                "message_id": assistant_message.id,
+                "tokens_used": len(answer.split()),
+            }
+
+        except Exception as e:
+            logger.error(f"Error handling mathematical question: {str(e)}")
+            return self._create_error_response(
+                f"Error processing mathematical question: {str(e)}"
+            )
+
+    def _handle_general_knowledge_question(
+        self, question: str, session: ChatSession, user_id: int, temperature: float
+    ) -> Dict[str, Any]:
+        """Handle general knowledge questions using LLM when no vector stores are available"""
+        try:
+            # Create a prompt for general knowledge questions
+            prompt = f"""You are a helpful AI assistant. Please answer the following question based on your general knowledge.
+            If you're not sure about something, please say so rather than making up information.
+
+            Question: {question}
+
+            Answer:"""
+
+            # Generate response using LLM
+            response = self.llm.invoke(prompt)
+
+            answer = response.content
+
+            # Save messages
+            _ = ChatMessage.objects.create(
+                session=session, message_type="user", content=question
+            )
+
+            assistant_message = ChatMessage.objects.create(
+                session=session,
+                message_type="assistant",
+                content=answer,
+                confidence_score=0.7,  # Moderate confidence for general knowledge
+                tokens_used=len(answer.split()),  # Approximate token count
+            )
+
+            # Update session
+            session.last_message_at = timezone.now()
+            session.save()
+
+            return {
+                "answer": answer,
+                "confidence_score": 0.7,
+                "session_id": session.id,
+                "message_id": assistant_message.id,
+                "tokens_used": len(answer.split()),
+            }
+
+        except Exception as e:
+            logger.error(f"Error handling general knowledge question: {str(e)}")
+            return self._create_error_response(
+                f"Error processing general knowledge question: {str(e)}"
+            )
+
     def _handle_knust_question(
         self, question: str, session: ChatSession, user_id: int
     ) -> Dict[str, Any]:
@@ -893,27 +1113,53 @@ class ChatService:
             documents = Document.objects.filter(
                 id=document_id, user_id=user_id, is_processed=True
             )
+            logger.info(
+                f"Found {documents.count()} processed documents for user {user_id}, document_id {document_id}"
+            )
 
             for doc in documents:
                 vector_store = self._load_document_vector_store(doc)
                 if vector_store:
                     vector_stores.append(vector_store)
+                    logger.info(
+                        f"Successfully loaded vector store for document {doc.id}"
+                    )
+                else:
+                    logger.warning(f"Failed to load vector store for document {doc.id}")
         else:
             # Get all user's documents
             documents = Document.objects.filter(user_id=user_id, is_processed=True)
+            logger.info(
+                f"Found {documents.count()} processed documents for user {user_id}"
+            )
 
             for doc in documents:
                 vector_store = self._load_document_vector_store(doc)
                 if vector_store:
                     vector_stores.append(vector_store)
+                    logger.info(
+                        f"Successfully loaded vector store for document {doc.id}"
+                    )
+                else:
+                    logger.warning(f"Failed to load vector store for document {doc.id}")
 
             # Also get all generic files for general questions
             generic_files = GenericFile.objects.filter(is_processed=True)
+            logger.info(f"Found {generic_files.count()} processed generic files")
+
             for generic_file in generic_files:
                 vector_store = self._load_generic_file_vector_store(generic_file)
                 if vector_store:
                     vector_stores.append(vector_store)
+                    logger.info(
+                        f"Successfully loaded vector store for generic file {generic_file.id}"
+                    )
+                else:
+                    logger.warning(
+                        f"Failed to load vector store for generic file {generic_file.id}"
+                    )
 
+        logger.info(f"Total vector stores loaded: {len(vector_stores)}")
         return vector_stores
 
     def _get_generic_files_vector_stores(self) -> List:
@@ -929,70 +1175,74 @@ class ChatService:
         return vector_stores
 
     def _load_document_vector_store(self, doc: Document):
-        """Load vector store for a specific document"""
+        """Load vector store for a specific document - prioritize Chroma over Redis"""
         try:
-            # Try Redis first
-            config = RedisConfig(
-                index_name=doc.index_name,
-                redis_url=REDIS_URL,
-                metadata_schema=[
-                    {"name": "document_id", "type": "tag"},
-                    {"name": "chunk_index", "type": "tag"},
-                    {"name": "page_number", "type": "tag"},
-                ],
+            # Try Chroma first (prioritized over Redis)
+            vector_store = Chroma(
+                embedding_function=self.embeddings,
+                collection_name=f"doc_{doc.id}",
             )
-            vector_store = RedisVectorStore(self.embeddings, config=config)
-            logger.info(f"Loaded Redis vector store for document {doc.id}")
+            logger.info(f"Loaded Chroma vector store for document {doc.id}")
             return vector_store
-        except Exception as e:
-            logger.warning(f"Redis vector store failed for document {doc.id}: {str(e)}")
-            # Try Chroma as fallback
+        except Exception as chroma_error:
+            logger.warning(
+                f"Chroma vector store failed for document {doc.id}: {str(chroma_error)}"
+            )
+            # Try Redis as fallback
             try:
-                vector_store = Chroma(
-                    embedding_function=self.embeddings,
-                    collection_name=f"doc_{doc.id}",
+                config = RedisConfig(
+                    index_name=doc.index_name,
+                    redis_url=REDIS_URL,
+                    metadata_schema=[
+                        {"name": "document_id", "type": "tag"},
+                        {"name": "chunk_index", "type": "tag"},
+                        {"name": "page_number", "type": "tag"},
+                    ],
                 )
-                logger.info(f"Loaded Chroma vector store for document {doc.id}")
+                vector_store = RedisVectorStore(self.embeddings, config=config)
+                logger.info(f"Loaded Redis vector store for document {doc.id}")
                 return vector_store
-            except Exception as chroma_error:
+            except Exception as redis_error:
                 logger.error(
-                    f"Both Redis and Chroma failed for document {doc.id}: {str(e)} -> {str(chroma_error)}"
+                    f"Both Chroma and Redis failed for document {doc.id}: {str(chroma_error)} -> {str(redis_error)}"
                 )
                 return None
 
     def _load_generic_file_vector_store(self, generic_file: GenericFile):
-        """Load vector store for a specific generic file"""
+        """Load vector store for a specific generic file - prioritize Chroma over Redis"""
         try:
-            # Try Redis first
-            config = RedisConfig(
-                index_name=generic_file.index_name,
-                redis_url=REDIS_URL,
-                metadata_schema=[
-                    {"name": "generic_file_id", "type": "tag"},
-                    {"name": "chunk_index", "type": "tag"},
-                    {"name": "source", "type": "tag"},
-                ],
+            # Try Chroma first (prioritized over Redis)
+            vector_store = Chroma(
+                embedding_function=self.embeddings,
+                collection_name=f"generic_{generic_file.id}",
             )
-            vector_store = RedisVectorStore(self.embeddings, config=config)
-            logger.info(f"Loaded Redis vector store for generic file {generic_file.id}")
+            logger.info(
+                f"Loaded Chroma vector store for generic file {generic_file.id}"
+            )
             return vector_store
-        except Exception as e:
+        except Exception as chroma_error:
             logger.warning(
-                f"Redis vector store failed for generic file {generic_file.id}: {str(e)}"
+                f"Chroma vector store failed for generic file {generic_file.id}: {str(chroma_error)}"
             )
-            # Try Chroma as fallback
+            # Try Redis as fallback
             try:
-                vector_store = Chroma(
-                    embedding_function=self.embeddings,
-                    collection_name=f"generic_{generic_file.id}",
+                config = RedisConfig(
+                    index_name=generic_file.index_name,
+                    redis_url=REDIS_URL,
+                    metadata_schema=[
+                        {"name": "generic_file_id", "type": "tag"},
+                        {"name": "chunk_index", "type": "tag"},
+                        {"name": "source", "type": "tag"},
+                    ],
                 )
+                vector_store = RedisVectorStore(self.embeddings, config=config)
                 logger.info(
-                    f"Loaded Chroma vector store for generic file {generic_file.id}"
+                    f"Loaded Redis vector store for generic file {generic_file.id}"
                 )
                 return vector_store
-            except Exception as chroma_error:
+            except Exception as redis_error:
                 logger.error(
-                    f"Both Redis and Chroma failed for generic file {generic_file.id}: {str(e)} -> {str(chroma_error)}"
+                    f"Both Chroma and Redis failed for generic file {generic_file.id}: {str(chroma_error)} -> {str(redis_error)}"
                 )
                 return None
 

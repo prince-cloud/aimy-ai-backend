@@ -224,3 +224,5 @@ level-banner/
 challenge_images/
 
 dump.rdb
+chroma_db/
+chroma_db/*
