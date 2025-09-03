@@ -11,6 +11,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document as LangchainDocument
 from langchain_community.vectorstores import Chroma  # Alternative vector store
 
+# ChromaDB imports
+import chromadb
+
 # Local imports
 from .models import (
     Document,
@@ -121,10 +124,17 @@ class DocumentProcessingService:
                 logger.info(
                     f"Attempting to create Chroma vector store for document: {document.id}"
                 )
+
+                # Create Chroma client with persistent directory
+                import chromadb
+
+                client = chromadb.PersistentClient(path="./chroma_db")
+
                 vector_store = Chroma.from_documents(
                     documents=chunks,
                     embedding=self.embeddings,
                     collection_name=f"doc_{document.id}",
+                    client=client,
                 )
                 vector_store_type = "chroma"
                 logger.info(
@@ -375,10 +385,15 @@ class DocumentProcessingService:
             vector_store = None
             try:
                 # Try Chroma first
+                import chromadb
+
+                client = chromadb.PersistentClient(path="./chroma_db")
+
                 vector_store = Chroma.from_documents(
                     documents=chunks,
                     embedding=self.embeddings,
                     collection_name=f"generic_{generic_file.id}",
+                    client=client,
                 )
                 logger.info(
                     f"Successfully created Chroma vector store for generic file {generic_file.id}"
@@ -1178,12 +1193,43 @@ class ChatService:
         """Load vector store for a specific document - prioritize Chroma over Redis"""
         try:
             # Try Chroma first (prioritized over Redis)
+            import chromadb
+
+            # Create Chroma client with persistent directory
+            client = chromadb.PersistentClient(path="./chroma_db")
+
+            # Check if collection exists and has data
+            collection_name = f"doc_{doc.id}"
+            try:
+                collection = client.get_collection(name=collection_name)
+                count = collection.count()
+                logger.info(
+                    f"Chroma collection {collection_name} exists with {count} documents"
+                )
+
+                if count == 0:
+                    logger.warning(
+                        f"Chroma collection {collection_name} exists but is empty"
+                    )
+                    raise Exception("Collection is empty")
+
+            except Exception as collection_error:
+                logger.warning(
+                    f"Chroma collection {collection_name} not found or empty: {str(collection_error)}"
+                )
+                raise collection_error
+
+            # Create Chroma vector store
             vector_store = Chroma(
                 embedding_function=self.embeddings,
-                collection_name=f"doc_{doc.id}",
+                collection_name=collection_name,
+                client=client,
             )
-            logger.info(f"Loaded Chroma vector store for document {doc.id}")
+            logger.info(
+                f"Successfully loaded Chroma vector store for document {doc.id}"
+            )
             return vector_store
+
         except Exception as chroma_error:
             logger.warning(
                 f"Chroma vector store failed for document {doc.id}: {str(chroma_error)}"
@@ -1200,7 +1246,9 @@ class ChatService:
                     ],
                 )
                 vector_store = RedisVectorStore(self.embeddings, config=config)
-                logger.info(f"Loaded Redis vector store for document {doc.id}")
+                logger.info(
+                    f"Successfully loaded Redis vector store for document {doc.id}"
+                )
                 return vector_store
             except Exception as redis_error:
                 logger.error(
@@ -1212,14 +1260,43 @@ class ChatService:
         """Load vector store for a specific generic file - prioritize Chroma over Redis"""
         try:
             # Try Chroma first (prioritized over Redis)
+            import chromadb
+
+            # Create Chroma client with persistent directory
+            client = chromadb.PersistentClient(path="./chroma_db")
+
+            # Check if collection exists and has data
+            collection_name = f"generic_{generic_file.id}"
+            try:
+                collection = client.get_collection(name=collection_name)
+                count = collection.count()
+                logger.info(
+                    f"Chroma collection {collection_name} exists with {count} documents"
+                )
+
+                if count == 0:
+                    logger.warning(
+                        f"Chroma collection {collection_name} exists but is empty"
+                    )
+                    raise Exception("Collection is empty")
+
+            except Exception as collection_error:
+                logger.warning(
+                    f"Chroma collection {collection_name} not found or empty: {str(collection_error)}"
+                )
+                raise collection_error
+
+            # Create Chroma vector store
             vector_store = Chroma(
                 embedding_function=self.embeddings,
-                collection_name=f"generic_{generic_file.id}",
+                collection_name=collection_name,
+                client=client,
             )
             logger.info(
-                f"Loaded Chroma vector store for generic file {generic_file.id}"
+                f"Successfully loaded Chroma vector store for generic file {generic_file.id}"
             )
             return vector_store
+
         except Exception as chroma_error:
             logger.warning(
                 f"Chroma vector store failed for generic file {generic_file.id}: {str(chroma_error)}"
@@ -1237,7 +1314,7 @@ class ChatService:
                 )
                 vector_store = RedisVectorStore(self.embeddings, config=config)
                 logger.info(
-                    f"Loaded Redis vector store for generic file {generic_file.id}"
+                    f"Successfully loaded Redis vector store for generic file {generic_file.id}"
                 )
                 return vector_store
             except Exception as redis_error:
@@ -1266,7 +1343,14 @@ class ChatService:
                         question, k=max_results * 2
                     )
 
+                logger.info(
+                    f"Vector search returned {len(results)} results for question: {question}"
+                )
+
                 for doc, score in results:
+                    logger.info(
+                        f"Result score: {score}, content preview: {doc.page_content[:100]}..."
+                    )
                     all_results.append(
                         {
                             "content": doc.page_content,
@@ -1279,6 +1363,7 @@ class ChatService:
 
         # Sort by score first
         all_results.sort(key=lambda x: x["score"])
+        logger.info(f"Total results after sorting: {len(all_results)}")
 
         # Apply hybrid filtering: boost exact matches
         enhanced_results = []
@@ -1302,11 +1387,31 @@ class ChatService:
 
             enhanced_results.append(result)
 
+        logger.info(f"Enhanced results: {len(enhanced_results)}")
+        if enhanced_results:
+            logger.info(f"Best score: {enhanced_results[0]['score']}")
+            logger.info(f"Worst score: {enhanced_results[-1]['score']}")
+
         # Re-sort by enhanced scores
         enhanced_results.sort(key=lambda x: x["score"])
 
         # If no good results from vector search, try direct database search
-        if not enhanced_results or all(r["score"] > 0.5 for r in enhanced_results):
+        # Be more lenient for general questions like "summary", "overview", etc.
+        general_question_keywords = [
+            "summary",
+            "overview",
+            "what is",
+            "tell me about",
+            "explain",
+            "describe",
+        ]
+        is_general_question = any(
+            keyword in question.lower() for keyword in general_question_keywords
+        )
+
+        if not enhanced_results or (
+            not is_general_question and all(r["score"] > 0.5 for r in enhanced_results)
+        ):
             enhanced_results = self._search_database_directly(question, max_results)
 
         return enhanced_results[:max_results]
@@ -1316,13 +1421,62 @@ class ChatService:
     ) -> List[Dict[str, Any]]:
         """Search database directly when vector search fails"""
         try:
-            from .models import GenericFileChunk
+            from .models import GenericFileChunk, DocumentChunk
 
             # Extract course codes from question
             import re
 
             course_pattern = r"\b[A-Z]{2,4}\s+\d{3}\b"
             course_matches = re.findall(course_pattern, question.upper())
+
+            # For general questions, get chunks from both document and generic file chunks
+            general_question_keywords = [
+                "summary",
+                "overview",
+                "what is",
+                "tell me about",
+                "explain",
+                "describe",
+            ]
+            is_general_question = any(
+                keyword in question.lower() for keyword in general_question_keywords
+            )
+
+            if is_general_question:
+                # For general questions, return chunks from both document and generic file chunks
+                results = []
+
+                # Get document chunks
+                doc_chunks = DocumentChunk.objects.all()[:max_results]
+                for chunk in doc_chunks:
+                    results.append(
+                        {
+                            "content": chunk.content,
+                            "metadata": {
+                                "document_id": chunk.document.id,
+                                "chunk_index": chunk.chunk_index,
+                                "source": chunk.document.title,
+                            },
+                            "score": 0.3,  # Good score for general questions
+                        }
+                    )
+
+                # Get generic file chunks
+                gen_chunks = GenericFileChunk.objects.all()[:max_results]
+                for chunk in gen_chunks:
+                    results.append(
+                        {
+                            "content": chunk.content,
+                            "metadata": {
+                                "generic_file_id": chunk.generic_file.id,
+                                "chunk_index": chunk.chunk_index,
+                                "source": chunk.generic_file.title,
+                            },
+                            "score": 0.3,  # Good score for general questions
+                        }
+                    )
+
+                return results[:max_results]
 
             if not course_matches:
                 return []
