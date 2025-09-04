@@ -54,17 +54,14 @@ services:
 
   redis:
     restart: always
-    image: redis/redis-stack:latest
+    image: redis:7-alpine
     command: redis-server --loglevel warning
     volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-      - "8001:8001"
+      - ./redis_data:/data
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 256M
 
   celery-beat:
     image: *image
@@ -116,4 +113,3 @@ services:
       - redis
 volumes:
   postgres_data:
-  redis_data:
