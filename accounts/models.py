@@ -28,7 +28,7 @@ class Department(models.Model):
 
 
 class CustomUser(AbstractUser):
-    class YearOfStudy(models.IntegerChoices):
+    class YearOfStudy(models.TextChoices):
         LEVEL_100 = "100"
         LEVEL_200 = "200"
         LEVEL_300 = "300"
@@ -47,7 +47,11 @@ class CustomUser(AbstractUser):
         null=True,
         blank=True,
     )
-    year_of_study = models.CharField(choices=YearOfStudy.choices)
+    year_of_study = models.CharField(
+        choices=YearOfStudy.choices,
+        default=YearOfStudy.LEVEL_100,
+        max_length=100,
+    )
 
     def __str__(self):
         return self.email
