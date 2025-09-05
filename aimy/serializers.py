@@ -6,6 +6,7 @@ from .models import (
     ChatMessage,
     ProcessingQueue,
     GenericFile,
+    Reminder,
 )
 
 
@@ -149,6 +150,39 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f"File type must be one of: {', '.join(allowed_types)}"
             )
+
+        # Check for problematic content in text files
+        if file_extension == "txt":
+            try:
+                # Read a sample of the file to check for null bytes
+                value.seek(0)  # Reset file pointer
+                sample = value.read(1024)  # Read first 1KB
+                value.seek(0)  # Reset file pointer again
+
+                # Check if it's binary content (contains null bytes)
+                if b"\x00" in sample:
+                    raise serializers.ValidationError(
+                        "Text file contains binary data or null bytes. Please ensure it's a valid text file."
+                    )
+
+                # Try to decode as UTF-8 to ensure it's valid text
+                try:
+                    sample.decode("utf-8")
+                except UnicodeDecodeError:
+                    # Try other common encodings
+                    try:
+                        sample.decode("latin-1")
+                    except UnicodeDecodeError:
+                        raise serializers.ValidationError(
+                            "Text file contains invalid characters. Please ensure it's encoded in UTF-8 or another standard encoding."
+                        )
+
+            except Exception as e:
+                # If we can't read the file for validation, let it continue but log the issue
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Could not validate file content: {e}")
 
         return value
 
@@ -352,3 +386,102 @@ class GenericFileUploadSerializer(serializers.ModelSerializer):
             generic_file.save()
 
         return generic_file
+
+
+class ReminderSerializer(serializers.ModelSerializer):
+    """Serializer for Reminder model"""
+
+    user_email = serializers.ReadOnlyField(source="user.email")
+    chat_session_title = serializers.ReadOnlyField(source="chat_session.title")
+    formatted_datetime = serializers.SerializerMethodField()
+    is_due = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Reminder
+        fields = [
+            "id",
+            "uud",
+            "title",
+            "description",
+            "original_message",
+            "reminder_datetime",
+            "formatted_datetime",
+            "timezone",
+            "status",
+            "delivery_method",
+            "user_email",
+            "chat_session",
+            "chat_session_title",
+            "chat_message",
+            "created_at",
+            "updated_at",
+            "sent_at",
+            "error_message",
+            "is_due",
+        ]
+        read_only_fields = [
+            "user",
+            "chat_session",
+            "chat_message",
+            "status",
+            "created_at",
+            "updated_at",
+            "sent_at",
+            "error_message",
+        ]
+
+    def get_formatted_datetime(self, obj):
+        """Return a human-readable datetime string"""
+        if obj.reminder_datetime:
+            return obj.reminder_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        return None
+
+
+class ReminderCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating reminders through API"""
+
+    class Meta:
+        model = Reminder
+        fields = [
+            "title",
+            "description",
+            "original_message",
+            "reminder_datetime",
+            "timezone",
+            "delivery_method",
+        ]
+
+    def validate_reminder_datetime(self, value):
+        """Validate that reminder datetime is in the future"""
+        from django.utils import timezone
+
+        if value <= timezone.now():
+            raise serializers.ValidationError("Reminder datetime must be in the future")
+        return value
+
+
+class ReminderListSerializer(serializers.ModelSerializer):
+    """Simplified serializer for listing reminders"""
+
+    formatted_datetime = serializers.SerializerMethodField()
+    is_due = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Reminder
+        fields = [
+            "id",
+            "uud",
+            "title",
+            "reminder_datetime",
+            "formatted_datetime",
+            "status",
+            "delivery_method",
+            "is_due",
+            "created_at",
+        ]
+
+    def get_formatted_datetime(self, obj):
+        """Return a human-readable datetime string"""
+        if obj.reminder_datetime:
+            return obj.reminder_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        return None

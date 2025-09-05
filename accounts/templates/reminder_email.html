@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reminder - {{ app_name }}</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+        }
+
+        /* Email container */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #940606 0%, #b31b1b 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .aimy-logo {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #940606;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .header .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+
+        /* Content */
+        .content {
+            padding: 40px 30px;
+        }
+
+        .reminder-icon {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .reminder-icon .icon {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border-radius: 50%;
+            line-height: 80px;
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .reminder-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #940606;
+            margin-bottom: 20px;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+            border-radius: 8px;
+            border-left: 4px solid #940606;
+        }
+
+        .reminder-details {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-icon {
+            width: 40px;
+            font-size: 18px;
+            color: #940606;
+            margin-right: 15px;
+        }
+
+        .detail-content {
+            flex: 1;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            color: #333;
+            margin-top: 2px;
+        }
+
+        .original-message {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #666;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #940606 0%, #b31b1b 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px 20px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer-logo {
+            margin-bottom: 15px;
+        }
+
+        .footer-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .footer-links {
+            margin: 20px 0;
+        }
+
+        .footer-links a {
+            color: #940606;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .social-links {
+            margin: 20px 0;
+        }
+
+        .social-links a {
+            display: inline-block;
+            margin: 0 5px;
+            width: 32px;
+            height: 32px;
+            background-color: #940606;
+            color: white;
+            border-radius: 50%;
+            line-height: 32px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .content {
+                padding: 20px 15px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .reminder-title {
+                font-size: 20px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container">
+                <div class="aimy-logo">🤖</div>
+            </div>
+            <h1>{{ app_name }}</h1>
+            <div class="subtitle">AI-Powered Reminder Service</div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Reminder Icon -->
+            <div class="reminder-icon">
+                <div class="icon">🔔</div>
+            </div>
+
+            <!-- Greeting -->
+            <div class="greeting">
+                Hello {{ user_name }},
+            </div>
+
+            <!-- Reminder Title -->
+            <div class="reminder-title">
+                {{ reminder_title }}
+            </div>
+
+            <!-- Reminder Details -->
+            <div class="reminder-details">
+                <div class="detail-row">
+                    <div class="detail-icon">📅</div>
+                    <div class="detail-content">
+                        <div class="detail-label">Scheduled For</div>
+                        <div class="detail-value">{{ reminder_datetime }}</div>
+                    </div>
+                </div>
+
+                {% if reminder_description %}
+                <div class="detail-row">
+                    <div class="detail-icon">📝</div>
+                    <div class="detail-content">
+                        <div class="detail-label">Details</div>
+                        <div class="detail-value">{{ reminder_description }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="detail-row">
+                    <div class="detail-icon">🤖</div>
+                    <div class="detail-content">
+                        <div class="detail-label">Created By</div>
+                        <div class="detail-value">{{ app_name }} Assistant</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Original Message -->
+            {% if original_message %}
+            <div class="original-message">
+                <strong>Your original request:</strong> "{{ original_message }}"
+            </div>
+            {% endif %}
+
+            <!-- CTA Section -->
+            <div class="cta-section">
+                <a href="{{ app_url }}" class="cta-button">
+                    Open {{ app_name }}
+                </a>
+            </div>
+
+            <!-- Additional Message -->
+            <p style="text-align: center; color: #666; font-size: 14px; margin-top: 20px;">
+                This reminder was automatically generated based on your request.
+                <br>Need to create more reminders? Just ask our AI assistant!
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-logo">
+                <strong style="color: #940606;">{{ app_name }}</strong>
+            </div>
+
+            <div class="footer-text">
+                Your AI-powered academic assistant for KNUST students
+            </div>
+
+            <div class="footer-links">
+                <a href="{{ app_url }}">Home</a>
+                <a href="{{ app_url }}/about">About</a>
+                <a href="{{ app_url }}/support">Support</a>
+                <a href="{{ app_url }}/privacy">Privacy</a>
+            </div>
+
+            <div class="footer-text" style="font-size: 12px; margin-top: 20px;">
+                © {{ current_year }} {{ app_name }}. All rights reserved.
+                <br>
+                This email was sent to {{ user.email }} because you requested a reminder.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

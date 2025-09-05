@@ -40,4 +40,20 @@ urlpatterns = [
         views.GenericFileDetailView.as_view(),
         name="generic_file_detail",
     ),
+    # Reminders
+    path(
+        "reminders/",
+        views.ReminderListView.as_view(),
+        name="reminder_list",
+    ),
+    path(
+        "reminders/create/",
+        views.ReminderCreateView.as_view(),
+        name="reminder_create",
+    ),
+    path(
+        "reminders/<int:reminder_id>/",
+        views.ReminderDetailView.as_view(),
+        name="reminder_detail",
+    ),
 ]

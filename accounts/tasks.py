@@ -28,7 +28,14 @@ def generic_send_mail(
     )
 
     # Choose template based on type
-    template = env.get_template("otp_email.html")
+    template_mapping = {
+        "user": "otp_email.html",
+        "admin": "otp_email.html",  # Can be different admin template
+        "reminder": "reminder_email.html",
+    }
+
+    template_file = template_mapping.get(template_type, "otp_email.html")
+    template = env.get_template(template_file)
 
     # Add current year to payload
     from datetime import datetime
@@ -109,19 +116,26 @@ def send_otp_email(recipient_email: str, otp_code: str, user, site_url: str = No
         return f"Error sending OTP email: {str(e)}"
 
 
-# @celery_app.task
 @shared_task
 def generic_send_sms(to, body):
-    base_url = settings.SMS_API_URL
-    username = settings.SMS_API_USERNAME
-    password = settings.SMS_API_PASSWORD
+    # return ""
+    url = "https://apps.mnotify.net/smsapi"
+    sender_id = settings.MNOTIFY_SENDER_ID
+    api_key = settings.MNOTIFY_API_KEY
 
-    url = f"{base_url}/http/v2/sendsms/{username}/{password}/{to}/{body}"
+    params = {
+        "key": api_key,
+        "to": to,
+        "msg": body,
+        "sender_id": sender_id,
+    }
 
     try:
-        headers = {"Content-Type": "application/json"}
-        requests.request("GET", url, headers=headers)
-        return "OTP Sent"
-    except Exception as e:
-        logger.error(f"Error sending SMS to {to}: {str(e)}")
-        return "An exception occurred while sending account activation code."
+        response = requests.post(url, params=params)
+        logger.info(f"Response: {response.text}")
+        response.raise_for_status()
+        logger.info("Message sent successfully!")
+        return response.json()  # Assuming API returns JSON
+    except requests.RequestException as e:
+        logger.error(f"An error occurred sending otp {e}")
+        return {"status": "error", "message": str(e)}

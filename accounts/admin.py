@@ -91,6 +91,7 @@ class CustomUserAdmin(ModelAdmin):
         "email",
         "full_name",
         "student_id",
+        "phone_number",
         "department",
         "year_of_study",
         "is_active",
@@ -122,6 +123,7 @@ class CustomUserAdmin(ModelAdmin):
         "last_name",
         "student_id",
         "index_number",
+        "phone_number",
         "department__name",
         "department__college__name",
     ]
@@ -146,7 +148,10 @@ class CustomUserAdmin(ModelAdmin):
     # Fieldsets for better organization - using standard Django UserAdmin structure
     fieldsets = (
         (None, {"fields": ("username", "password")}),
-        ("Personal info", {"fields": ("first_name", "last_name", "email")}),
+        (
+            "Personal info",
+            {"fields": ("first_name", "last_name", "email", "phone_number")},
+        ),
         (
             "Academic Information",
             {

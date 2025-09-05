@@ -52,6 +52,12 @@ class CustomUser(AbstractUser):
         default=YearOfStudy.LEVEL_100,
         max_length=100,
     )
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Phone number for SMS notifications (include country code, e.g., +1234567890)",
+    )
 
     def __str__(self):
         return self.email

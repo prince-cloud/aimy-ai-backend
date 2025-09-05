@@ -2,7 +2,7 @@ import os
 from celery import Celery
 import logging
 
-# from celery.schedules import crontab
+from celery.schedules import crontab
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,14 @@ app.conf.beat_schedule = {
     #         # hour="*/12",
     #     ),
     # },
+    "process_due_reminders": {
+        "task": "aimy.tasks.process_due_reminders",
+        "schedule": crontab(minute="*"),  # Run every minute
+    },
+    "cleanup_old_reminders": {
+        "task": "aimy.tasks.cleanup_old_reminders",
+        "schedule": crontab(minute="0", hour="2"),  # Run daily at 2 AM
+    },
 }
 
 

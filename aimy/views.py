@@ -6,7 +6,15 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 
 # Local imports
-from .models import Document, DocumentChunk, ChatSession, ProcessingQueue, GenericFile
+from .models import (
+    ChatMessage,
+    Document,
+    DocumentChunk,
+    ChatSession,
+    ProcessingQueue,
+    GenericFile,
+    Reminder,
+)
 from .serializers import (
     DocumentSerializer,
     DocumentUploadSerializer,
@@ -17,13 +25,17 @@ from .serializers import (
     DocumentSearchSerializer,
     GenericFileSerializer,
     GenericFileUploadSerializer,
+    ReminderSerializer,
+    ReminderListSerializer,
+    ReminderCreateSerializer,
 )
-from .services import DocumentProcessingService, ChatService
+from .services import DocumentProcessingService, ChatService, ReminderService
 from loguru import logger
 
 # Initialize services
 document_service = DocumentProcessingService()
 chat_service = ChatService()
+reminder_service = ReminderService()
 
 
 class DocumentUploadView(APIView):
@@ -774,6 +786,241 @@ class GenericFileDetailView(APIView):
                 {
                     "status": "error",
                     "message": "Error deleting generic file",
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ReminderListView(APIView):
+    """API view for listing user reminders"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get user's reminders"""
+        try:
+            status_filter = request.query_params.get("status", None)
+            limit = int(request.query_params.get("limit", 50))
+
+            reminders = reminder_service.get_user_reminders(
+                user=request.user, status=status_filter, limit=limit
+            )
+
+            serializer = ReminderListSerializer(reminders, many=True)
+
+            return Response(
+                {"success": True, "reminders": serializer.data, "count": len(reminders)}
+            )
+
+        except Exception as e:
+            logger.error(f"Error getting user reminders: {e}")
+            return Response(
+                {
+                    "success": False,
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ReminderDetailView(APIView):
+    """API view for getting, updating, or deleting a specific reminder"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, reminder_id):
+        """Get a specific reminder"""
+        try:
+            reminder = Reminder.objects.get(id=reminder_id, user=request.user)
+
+            serializer = ReminderSerializer(reminder)
+
+            return Response({"success": True, "reminder": serializer.data})
+
+        except Reminder.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "error": "Reminder not found",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error(f"Error getting reminder: {e}")
+            return Response(
+                {
+                    "success": False,
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def patch(self, request, reminder_id):
+        """Update a reminder (e.g., cancel it)"""
+        try:
+            reminder = Reminder.objects.get(id=reminder_id, user=request.user)
+
+            # Only allow updating certain fields
+            allowed_fields = ["status", "delivery_method"]
+            update_data = {k: v for k, v in request.data.items() if k in allowed_fields}
+
+            if "status" in update_data:
+                if update_data["status"] == "cancelled":
+                    reminder_service.cancel_reminder(reminder)
+                else:
+                    reminder.status = update_data["status"]
+                    reminder.save()
+
+            if "delivery_method" in update_data:
+                reminder.delivery_method = update_data["delivery_method"]
+                reminder.save()
+
+            serializer = ReminderSerializer(reminder)
+
+            return Response(
+                {
+                    "success": True,
+                    "reminder": serializer.data,
+                    "message": "Reminder updated successfully",
+                }
+            )
+
+        except Reminder.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "error": "Reminder not found",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error(f"Error updating reminder: {e}")
+            return Response(
+                {
+                    "success": False,
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def delete(self, request, reminder_id):
+        """Delete/cancel a reminder"""
+        try:
+            reminder = Reminder.objects.get(id=reminder_id, user=request.user)
+
+            # Cancel instead of delete to maintain audit trail
+            reminder_service.cancel_reminder(reminder)
+
+            return Response(
+                {"success": True, "message": "Reminder cancelled successfully"}
+            )
+
+        except Reminder.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "error": "Reminder not found",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error(f"Error cancelling reminder: {e}")
+            return Response(
+                {
+                    "success": False,
+                    "error": str(e),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ReminderCreateView(APIView):
+    """API view for manually creating reminders"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Create a reminder manually"""
+        try:
+            serializer = ReminderCreateSerializer(data=request.data)
+
+            if serializer.is_valid():
+                # Get chat session
+                session_id = request.data.get("session_id")
+                if session_id:
+                    try:
+                        chat_session = ChatSession.objects.get(
+                            id=session_id, user=request.user
+                        )
+                    except ChatSession.DoesNotExist:
+                        return Response(
+                            {
+                                "success": False,
+                                "error": "Chat session not found",
+                            },
+                            status=status.HTTP_404_NOT_FOUND,
+                        )
+                else:
+                    # Create a new session for the reminder
+                    chat_session = ChatSession.objects.create(
+                        user=request.user, title="Manual Reminder Session"
+                    )
+
+                # Create a chat message for the reminder
+                chat_message = ChatMessage.objects.create(
+                    session=chat_session,
+                    message_type="user",
+                    content=serializer.validated_data["original_message"],
+                )
+
+                # Create the reminder
+                reminder_data = {
+                    "title": serializer.validated_data["title"],
+                    "description": serializer.validated_data.get("description", ""),
+                    "datetime": serializer.validated_data["reminder_datetime"].strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
+                }
+
+                reminder = reminder_service.create_reminder(
+                    user=request.user,
+                    chat_session=chat_session,
+                    chat_message=chat_message,
+                    reminder_data=reminder_data,
+                    user_timezone=serializer.validated_data.get("timezone", "UTC"),
+                )
+
+                if reminder:
+                    return Response(
+                        {
+                            "success": True,
+                            "reminder": ReminderSerializer(reminder).data,
+                            "message": "Reminder created successfully",
+                        }
+                    )
+                else:
+                    return Response(
+                        {
+                            "success": False,
+                            "error": "Failed to create reminder",
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+
+            return Response(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating reminder: {e}")
+            return Response(
+                {
+                    "success": False,
                     "error": str(e),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

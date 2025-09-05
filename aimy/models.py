@@ -352,3 +352,102 @@ class GenericFileChunk(models.Model):
 
     def __str__(self):
         return f"Chunk {self.chunk_index} of {self.generic_file.title}"
+
+
+class Reminder(models.Model):
+    """Model to store user reminders created through chat sessions"""
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("sent", "Sent"),
+        ("cancelled", "Cancelled"),
+        ("failed", "Failed"),
+    ]
+
+    user = models.ForeignKey(
+        CustomUser,
+        related_name="reminders",
+        on_delete=models.CASCADE,
+    )
+    chat_session = models.ForeignKey(
+        ChatSession,
+        related_name="reminders",
+        on_delete=models.CASCADE,
+        help_text="Chat session where reminder was created",
+    )
+    chat_message = models.ForeignKey(
+        ChatMessage,
+        related_name="created_reminders",
+        on_delete=models.CASCADE,
+        help_text="Original chat message that triggered the reminder",
+    )
+
+    # Reminder content
+    title = models.CharField(
+        max_length=255, help_text="Brief title/description of the reminder"
+    )
+    description = models.TextField(
+        blank=True, null=True, help_text="Detailed description of what to remind about"
+    )
+    original_message = models.TextField(
+        help_text="Original user message that created this reminder"
+    )
+
+    # Timing
+    reminder_datetime = models.DateTimeField(help_text="When to send the reminder")
+    timezone = models.CharField(
+        max_length=50, default="UTC", help_text="User's timezone for the reminder"
+    )
+
+    # Status and delivery
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    delivery_method = models.CharField(
+        max_length=20,
+        choices=[
+            ("notification", "In-App Notification"),
+            ("email", "Email"),
+            ("sms", "SMS"),
+            ("email_sms", "Email + SMS"),
+            ("all", "All Methods"),
+        ],
+        default="notification",
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    error_message = models.TextField(
+        blank=True, null=True, help_text="Error message if reminder failed to send"
+    )
+    uud = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
+    class Meta:
+        ordering = ["reminder_datetime"]
+        indexes = [
+            models.Index(fields=["status", "reminder_datetime"]),
+            models.Index(fields=["user", "status"]),
+        ]
+
+    def __str__(self):
+        return f"Reminder: {self.title} - {self.reminder_datetime.strftime('%Y-%m-%d %H:%M')}"
+
+    def is_due(self):
+        """Check if the reminder is due to be sent"""
+        from django.utils import timezone
+
+        return self.status == "pending" and self.reminder_datetime <= timezone.now()
+
+    def mark_as_sent(self):
+        """Mark reminder as sent"""
+        from django.utils import timezone
+
+        self.status = "sent"
+        self.sent_at = timezone.now()
+        self.save()
+
+    def mark_as_failed(self, error_message):
+        """Mark reminder as failed with error message"""
+        self.status = "failed"
+        self.error_message = error_message
+        self.save()

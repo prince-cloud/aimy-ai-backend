@@ -8,6 +8,7 @@ from .models import (
     ProcessingQueue,
     GenericFile,
     GenericFileChunk,
+    Reminder,
 )
 
 
@@ -162,3 +163,70 @@ class GenericFileChunkAdmin(ModelAdmin):
 
     def content_preview(self, obj):
         return obj.content[:100] + "..." if len(obj.content) > 100 else obj.content
+
+    content_preview.short_description = "Content Preview"
+
+
+@admin.register(Reminder)
+class ReminderAdmin(ModelAdmin):
+    list_display = [
+        "title",
+        "user",
+        "reminder_datetime",
+        "status",
+        "delivery_method",
+        "created_at",
+        "sent_at",
+    ]
+    list_filter = [
+        "status",
+        "delivery_method",
+        "reminder_datetime",
+        "created_at",
+        "sent_at",
+        "user__email",
+    ]
+    search_fields = [
+        "title",
+        "description",
+        "original_message",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+    ]
+    readonly_fields = [
+        "original_message",
+        "created_at",
+        "updated_at",
+        "sent_at",
+        "error_message",
+    ]
+    ordering = ["-reminder_datetime"]
+
+    fieldsets = (
+        (
+            "Reminder Info",
+            {"fields": ("title", "description", "reminder_datetime", "timezone")},
+        ),
+        (
+            "Status & Delivery",
+            {"fields": ("status", "delivery_method", "sent_at", "error_message")},
+        ),
+        ("Relations", {"fields": ("user", "chat_session", "chat_message")}),
+        (
+            "Original Message",
+            {"fields": ("original_message",), "classes": ("collapse",)},
+        ),
+        (
+            "Timestamps",
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+        ),
+    )
+
+    def get_queryset(self, request):
+        """Optimize query with select_related"""
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("user", "chat_session", "chat_message")
+        )

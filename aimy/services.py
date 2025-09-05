@@ -23,6 +23,7 @@ from .models import (
     ChatMessage,
     GenericFile,
     GenericFileChunk,
+    Reminder,
 )
 from .knust_tools import knust_tools
 from loguru import logger
@@ -290,15 +291,26 @@ class DocumentProcessingService:
             docs = loader.load()
             logger.info(f"Successfully loaded {len(docs)} pages/chunks from document")
 
+            # Clean the text content to remove null bytes and other problematic characters
+            cleaned_docs = []
+            for doc in docs:
+                cleaned_content = self._clean_text_content(doc.page_content)
+                cleaned_doc = LangchainDocument(
+                    page_content=cleaned_content, metadata=doc.metadata
+                )
+                cleaned_docs.append(cleaned_doc)
+
+            logger.info(f"Cleaned {len(cleaned_docs)} document pages")
+
             # Log some content for debugging
-            if docs:
-                first_doc = docs[0]
+            if cleaned_docs:
+                first_doc = cleaned_docs[0]
                 logger.info(
                     f"First document content preview: {first_doc.page_content[:100]}..."
                 )
                 logger.info(f"First document metadata: {first_doc.metadata}")
 
-            return docs
+            return cleaned_docs
 
         except ImportError as e:
             logger.error(f"Missing module for document loading: {str(e)}")
@@ -312,6 +324,50 @@ class DocumentProcessingService:
 
             logger.error(f"Document loading traceback: {traceback.format_exc()}")
             raise Exception(f"Document loading error: {str(e)}")
+
+    def _clean_text_content(self, content: str) -> str:
+        """
+        Clean text content to remove null bytes and other problematic characters
+        that could cause PostgreSQL errors.
+        """
+        if not content:
+            return ""
+
+        try:
+            # Remove null bytes (0x00) that cause PostgreSQL errors
+            cleaned_content = content.replace("\x00", "")
+
+            # Remove other problematic control characters but keep common ones like \n, \t
+            import re
+
+            # Remove control characters except newline (\n), tab (\t), and carriage return (\r)
+            cleaned_content = re.sub(
+                r"[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]", "", cleaned_content
+            )
+
+            # Normalize whitespace - replace multiple consecutive whitespace with single space
+            # But preserve line breaks
+            cleaned_content = re.sub(r"[ \t]+", " ", cleaned_content)
+            cleaned_content = re.sub(r"\n\s*\n", "\n\n", cleaned_content)
+
+            # Remove any leading/trailing whitespace
+            cleaned_content = cleaned_content.strip()
+
+            # Ensure the content is valid UTF-8
+            cleaned_content = cleaned_content.encode("utf-8", errors="ignore").decode(
+                "utf-8"
+            )
+
+            logger.debug(
+                f"Cleaned text content: original length {len(content)}, cleaned length {len(cleaned_content)}"
+            )
+
+            return cleaned_content
+
+        except Exception as e:
+            logger.error(f"Error cleaning text content: {e}")
+            # Return a safe fallback
+            return content.replace("\x00", "") if content else ""
 
     def check_document_exists(self, file_hash: str, user_id: int) -> Optional[Document]:
         """Check if document with same hash already exists for user"""
@@ -465,7 +521,18 @@ class DocumentProcessingService:
             logger.info(
                 f"Successfully loaded {len(docs)} documents from generic file {generic_file.id}"
             )
-            return docs
+
+            # Clean the text content to remove null bytes and other problematic characters
+            cleaned_docs = []
+            for doc in docs:
+                cleaned_content = self._clean_text_content(doc.page_content)
+                cleaned_doc = LangchainDocument(
+                    page_content=cleaned_content, metadata=doc.metadata
+                )
+                cleaned_docs.append(cleaned_doc)
+
+            logger.info(f"Cleaned {len(cleaned_docs)} generic file pages")
+            return cleaned_docs
 
         except Exception as e:
             logger.error(f"Error loading generic file {generic_file.id}: {str(e)}")
@@ -488,6 +555,7 @@ class ChatService:
         self.embeddings = OpenAIEmbeddings(
             model=EMBEDDING_MODEL, openai_api_key=OPENAI_API_KEY
         )
+        self.reminder_service = ReminderService()
 
     def ask_question(
         self,
@@ -502,6 +570,13 @@ class ChatService:
         try:
             # Get or create chat session
             session = self._get_or_create_session(user_id, session_id, document_id)
+
+            # Priority 0: Check if this is a reminder request
+            reminder_response = self._handle_reminder_request(
+                question, session, user_id
+            )
+            if reminder_response:
+                return reminder_response
 
             # Priority 1: If document_id is provided, prioritize that document
             if document_id:
@@ -528,6 +603,118 @@ class ChatService:
         except Exception as e:
             logger.error(f"Error asking question: {str(e)}")
             return self._create_error_response(str(e))
+
+    def _handle_reminder_request(
+        self, question: str, session: ChatSession, user_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Handle reminder requests specifically.
+        Returns a response if this is a reminder request, None otherwise.
+        """
+        try:
+            # Check if this is a reminder request
+            reminder_data = self.reminder_service.analyze_message_for_reminder(question)
+
+            if not reminder_data:
+                return None  # Not a reminder request
+
+            # Save the user message first
+            user_message = ChatMessage.objects.create(
+                session=session, message_type="user", content=question
+            )
+
+            # Create the reminder
+            reminder = self.reminder_service.create_reminder(
+                user=session.user,
+                chat_session=session,
+                chat_message=user_message,
+                reminder_data=reminder_data,
+                user_timezone="UTC",  # TODO: Get from user preferences
+            )
+
+            if reminder:
+                # Create a helpful response about the reminder
+                response_content = (
+                    f"✅ I've set a reminder for you: **{reminder.title}**\n\n"
+                )
+                response_content += f"📅 **When:** {reminder.reminder_datetime.strftime('%B %d, %Y at %I:%M %p')}\n"
+
+                # Add delivery method with more detail
+                delivery_method_map = {
+                    "notification": "📱 In-app notification",
+                    "email": "📧 Email notification",
+                    "sms": "📱 SMS notification",
+                    "email_sms": "📧📱 Email and SMS notifications",
+                    "all": "📧📱🔔 All notification methods",
+                }
+                delivery_desc = delivery_method_map.get(
+                    reminder.delivery_method, reminder.get_delivery_method_display()
+                )
+                response_content += f"🔔 **Delivery:** {delivery_desc}\n\n"
+
+                # Add contact info status
+                if reminder.delivery_method in ["email", "email_sms", "all"]:
+                    response_content += (
+                        f"📧 Email will be sent to: {session.user.email}\n"
+                    )
+                if reminder.delivery_method in ["sms", "email_sms", "all"]:
+                    phone = session.user.phone_number or "Not provided"
+                    response_content += f"📱 SMS will be sent to: {phone}\n"
+
+                response_content += (
+                    "\nI'll make sure to remind you at the scheduled time!"
+                )
+
+                # Save the assistant response
+                assistant_message = ChatMessage.objects.create(
+                    session=session,
+                    message_type="assistant",
+                    content=response_content,
+                    confidence_score=1.0,  # High confidence for successful reminder creation
+                )
+
+                # Update session
+                session.last_message_at = timezone.now()
+                if not session.title or session.title == "New Chat":
+                    session.title = f"Reminder: {reminder.title[:50]}"
+                session.save()
+
+                return {
+                    "success": True,
+                    "answer": response_content,
+                    "confidence_score": 1.0,
+                    "sources": [],
+                    "session_id": session.id,
+                    "session_title": session.title,
+                    "reminder_created": True,
+                    "reminder_id": reminder.id,
+                    "reminder_datetime": reminder.reminder_datetime.isoformat(),
+                }
+            else:
+                # Reminder creation failed
+                error_message = "I understood that you want to set a reminder, but I had trouble creating it. Please try again or be more specific about the date and time."
+
+                assistant_message = ChatMessage.objects.create(
+                    session=session,
+                    message_type="assistant",
+                    content=error_message,
+                    confidence_score=0.3,
+                )
+
+                return {
+                    "success": False,
+                    "answer": error_message,
+                    "confidence_score": 0.3,
+                    "sources": [],
+                    "session_id": session.id,
+                    "session_title": session.title,
+                    "reminder_created": False,
+                    "error": "Failed to create reminder",
+                }
+
+        except Exception as e:
+            logger.error(f"Error handling reminder request: {e}")
+            return None  # Fall back to normal question handling
 
     def _handle_document_specific_question(
         self,
@@ -564,7 +751,7 @@ class ChatService:
             )
 
             # Save messages
-            _ = ChatMessage.objects.create(
+            user_message = ChatMessage.objects.create(
                 session=session, message_type="user", content=question
             )
 
@@ -627,7 +814,7 @@ class ChatService:
             )
 
             # Save messages
-            _ = ChatMessage.objects.create(
+            user_message = ChatMessage.objects.create(
                 session=session, message_type="user", content=question
             )
 
@@ -691,7 +878,7 @@ class ChatService:
             )
 
             # Save messages
-            _ = ChatMessage.objects.create(
+            user_message = ChatMessage.objects.create(
                 session=session, message_type="user", content=question
             )
 
@@ -761,7 +948,7 @@ class ChatService:
             )
 
             # Save messages
-            _ = ChatMessage.objects.create(
+            user_message = ChatMessage.objects.create(
                 session=session, message_type="user", content=question
             )
 
@@ -895,7 +1082,6 @@ class ChatService:
         """Handle mathematical questions using safe evaluation"""
         try:
             import re
-            import ast
 
             # Clean the question and extract mathematical expression
             question_lower = question.lower()
@@ -973,7 +1159,7 @@ class ChatService:
                 answer = f"I cannot evaluate that mathematical expression: {str(e)}"
 
             # Save messages
-            _ = ChatMessage.objects.create(
+            user_message = ChatMessage.objects.create(
                 session=session, message_type="user", content=question
             )
 
@@ -1022,7 +1208,7 @@ class ChatService:
             answer = response.content
 
             # Save messages
-            _ = ChatMessage.objects.create(
+            user_message = ChatMessage.objects.create(
                 session=session, message_type="user", content=question
             )
 
@@ -1061,7 +1247,7 @@ class ChatService:
             knust_answer = knust_tools.get_knust_info(question)
 
             # Save messages
-            _ = ChatMessage.objects.create(
+            user_message = ChatMessage.objects.create(
                 session=session, message_type="user", content=question
             )
 
@@ -1624,3 +1810,246 @@ class ChatService:
             }
             for session in sessions
         ]
+
+
+class ReminderService:
+    """Service for handling reminder functionality"""
+
+    def __init__(self):
+        self.llm = ChatOpenAI(
+            model=OPENAI_MODEL,
+            openai_api_key=OPENAI_API_KEY,
+            temperature=0.1,  # Lower temperature for more consistent parsing
+        )
+
+    def analyze_message_for_reminder(
+        self, message: str, user_timezone: str = "UTC"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Analyze a user message to detect if it contains a reminder request.
+        Returns reminder details if found, None otherwise.
+        """
+        import json
+        import re
+        from datetime import datetime, timedelta
+
+        # Keywords that indicate reminder intent
+        reminder_keywords = [
+            "remind",
+            "reminder",
+            "remember",
+            "don't forget",
+            "alert me",
+            "notify me",
+            "schedule",
+            "set a reminder",
+            "alarm",
+        ]
+
+        # Check if message contains reminder keywords
+        message_lower = message.lower()
+        has_reminder_keyword = any(
+            keyword in message_lower for keyword in reminder_keywords
+        )
+
+        if not has_reminder_keyword:
+            return None
+
+        # Create a prompt to extract reminder information using LLM
+        system_prompt = f"""
+        You are a reminder extraction assistant. Analyze the user message and extract reminder information if present.
+        Current timezone: {user_timezone}
+        Current datetime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+        If the message contains a reminder request, extract:
+        1. title: Brief description (max 100 chars)
+        2. description: Detailed description (optional)
+        3. datetime: When to remind (YYYY-MM-DD HH:MM:SS format)
+        4. relative_time: If time is relative (e.g., "tomorrow", "in 2 hours")
+
+        Return ONLY a JSON object with these fields if a reminder is detected, or null if no reminder is found.
+        Examples:
+        - "remind me about my exam at 2:30 tomorrow" -> {{"title": "Exam reminder", "datetime": "2024-01-15 14:30:00", "relative_time": "tomorrow"}}
+        - "don't forget to call mom at 7pm" -> {{"title": "Call mom", "datetime": "2024-01-14 19:00:00", "relative_time": "today"}}
+        """
+
+        try:
+            # Use LLM to extract reminder information
+            response = self.llm.invoke(
+                [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message},
+                ]
+            )
+
+            response_text = response.content.strip()
+            logger.info(f"LLM reminder extraction response: {response_text}")
+
+            # Try to parse JSON response
+            if response_text.lower() == "null" or not response_text:
+                return None
+
+            # Clean response - sometimes LLM adds extra text
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                reminder_data = json.loads(json_str)
+
+                # Validate required fields
+                if "title" in reminder_data and "datetime" in reminder_data:
+                    # Parse datetime and ensure it's in the future
+                    try:
+                        reminder_datetime = datetime.strptime(
+                            reminder_data["datetime"], "%Y-%m-%d %H:%M:%S"
+                        )
+
+                        # If datetime is in the past, try to adjust to next occurrence
+                        if reminder_datetime <= datetime.now():
+                            # If it's the same day but past time, move to tomorrow
+                            if reminder_datetime.date() == datetime.now().date():
+                                reminder_datetime += timedelta(days=1)
+                            # If it's a past date, move to next year
+                            elif reminder_datetime.date() < datetime.now().date():
+                                reminder_datetime = reminder_datetime.replace(
+                                    year=datetime.now().year + 1
+                                )
+
+                        reminder_data["datetime"] = reminder_datetime.strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        )
+                        return reminder_data
+
+                    except ValueError as e:
+                        logger.error(f"Invalid datetime format in reminder: {e}")
+                        return None
+
+            return None
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM response as JSON: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error in reminder analysis: {e}")
+            return None
+
+    def create_reminder(
+        self,
+        user,
+        chat_session: ChatSession,
+        chat_message: ChatMessage,
+        reminder_data: Dict[str, Any],
+        user_timezone: str = "UTC",
+    ) -> Optional[Reminder]:
+        """
+        Create a reminder object from extracted reminder data.
+        """
+        try:
+            from datetime import datetime
+
+            # Parse the datetime
+            reminder_datetime = datetime.strptime(
+                reminder_data["datetime"], "%Y-%m-%d %H:%M:%S"
+            )
+
+            # Determine the best delivery method based on user's available contact info
+            delivery_method = self._determine_delivery_method(user)
+
+            # Create reminder
+            reminder = Reminder.objects.create(
+                user=user,
+                chat_session=chat_session,
+                chat_message=chat_message,
+                title=reminder_data["title"][:255],  # Ensure within limit
+                description=reminder_data.get("description", ""),
+                original_message=chat_message.content,
+                reminder_datetime=reminder_datetime,
+                timezone=user_timezone,
+                delivery_method=delivery_method,
+            )
+
+            logger.info(
+                f"Created reminder {reminder.id} for user {user.id}: {reminder.title}"
+            )
+            return reminder
+
+        except Exception as e:
+            logger.error(f"Error creating reminder: {e}")
+            return None
+
+    def _determine_delivery_method(self, user) -> str:
+        """
+        Determine the best delivery method based on user's available contact information.
+        Priority: SMS > Email + SMS > Email > Notification only
+        """
+        has_phone = bool(user.phone_number and user.phone_number.strip())
+        has_email = bool(user.email and user.email.strip())
+
+        if has_phone and has_email:
+            return "email_sms"  # Both email and SMS for best coverage
+        elif has_phone:
+            return "sms"  # SMS only if they have phone but no email (unlikely)
+        elif has_email:
+            return "email"  # Email only if they have email but no phone
+        else:
+            return "notification"  # Fallback to in-app notification only
+
+    def process_message_for_reminders(
+        self,
+        message_content: str,
+        user,
+        chat_session: ChatSession,
+        chat_message: ChatMessage,
+        user_timezone: str = "UTC",
+    ) -> Optional[Reminder]:
+        """
+        Process a chat message to detect and create reminders.
+        This should be called after a user message is saved.
+        """
+        # Analyze message for reminder intent
+        reminder_data = self.analyze_message_for_reminder(
+            message_content, user_timezone
+        )
+
+        if reminder_data:
+            # Create the reminder
+            reminder = self.create_reminder(
+                user, chat_session, chat_message, reminder_data, user_timezone
+            )
+            return reminder
+
+        return None
+
+    def get_user_reminders(
+        self, user, status: Optional[str] = None, limit: int = 50
+    ) -> List[Reminder]:
+        """Get user's reminders, optionally filtered by status"""
+        queryset = Reminder.objects.filter(user=user)
+
+        if status:
+            queryset = queryset.filter(status=status)
+
+        return queryset.order_by("reminder_datetime")[:limit]
+
+    def get_due_reminders(self) -> List[Reminder]:
+        """Get all reminders that are due to be sent"""
+        from django.utils import timezone
+
+        return Reminder.objects.filter(
+            status="pending", reminder_datetime__lte=timezone.now()
+        ).order_by("reminder_datetime")
+
+    def mark_reminder_sent(self, reminder: Reminder):
+        """Mark a reminder as sent"""
+        reminder.mark_as_sent()
+        logger.info(f"Marked reminder {reminder.id} as sent")
+
+    def mark_reminder_failed(self, reminder: Reminder, error_message: str):
+        """Mark a reminder as failed"""
+        reminder.mark_as_failed(error_message)
+        logger.error(f"Marked reminder {reminder.id} as failed: {error_message}")
+
+    def cancel_reminder(self, reminder: Reminder):
+        """Cancel a reminder"""
+        reminder.status = "cancelled"
+        reminder.save()
+        logger.info(f"Cancelled reminder {reminder.id}")

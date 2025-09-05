@@ -466,3 +466,8 @@ UNFOLD = {
 
 # allow all headers
 CORS_ALLOW_HEADERS = "*"
+
+
+# MNOTIFY
+MNOTIFY_SENDER_ID = os.getenv("MNOTIFY_SENDER_ID", "")
+MNOTIFY_API_KEY = os.getenv("MNOTIFY_API_KEY", "")
