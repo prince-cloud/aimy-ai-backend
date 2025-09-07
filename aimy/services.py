@@ -571,20 +571,27 @@ class ChatService:
             # Get or create chat session
             session = self._get_or_create_session(user_id, session_id, document_id)
 
-            # Priority 0: Check if this is a reminder request
+            # Priority 0: Check if this is a greeting (highest priority, no file lookups)
+            greeting_response = self._handle_greeting_request(
+                question, session, user_id
+            )
+            if greeting_response:
+                return greeting_response
+
+            # Priority 1: Check if this is a reminder request
             reminder_response = self._handle_reminder_request(
                 question, session, user_id
             )
             if reminder_response:
                 return reminder_response
 
-            # Priority 1: If document_id is provided, prioritize that document
+            # Priority 2: If document_id is provided, prioritize that document
             if document_id:
                 return self._handle_document_specific_question(
                     question, session, user_id, document_id, max_results, temperature
                 )
 
-            # Priority 2: If session_id is provided, prioritize that session's document
+            # Priority 3: If session_id is provided, prioritize that session's document
             if session_id and session.document:
                 return self._handle_session_specific_question(
                     question,
@@ -595,7 +602,7 @@ class ChatService:
                     temperature,
                 )
 
-            # Priority 3: Use generic files (admin-uploaded files) - similar to document-specific approach
+            # Priority 4: Use generic files (admin-uploaded files) - similar to document-specific approach
             return self._handle_generic_files_question(
                 question, session, user_id, max_results, temperature
             )
@@ -603,6 +610,236 @@ class ChatService:
         except Exception as e:
             logger.error(f"Error asking question: {str(e)}")
             return self._create_error_response(str(e))
+
+    def _handle_greeting_request(
+        self, question: str, session: ChatSession, user_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Handle greeting messages without looking for documents.
+        Returns a response if this is a greeting, None otherwise.
+        """
+        try:
+            # Common greeting patterns
+            greeting_patterns = [
+                # Basic greetings
+                r"\b(hi|hello|hey|hiya|howdy)\b",
+                r"\b(good\s+(morning|afternoon|evening|day|night))\b",
+                r"\b(greetings?)\b",
+                r"\b(salutations?)\b",
+                # Conversational starters
+                r"\b(how\s+(are\s+you|is\s+it\s+going|you\s+doing))\b",
+                r"\b(what\'?s\s+up)\b",
+                r"\b(how\s+do\s+you\s+do)\b",
+                r"\b(nice\s+to\s+(meet|see)\s+you)\b",
+                r"\b(pleased\s+to\s+(meet|see)\s+you)\b",
+                # Question about the assistant
+                r"\b(who\s+are\s+you)\b",
+                r"\b(what\s+are\s+you)\b",
+                r"\b(introduce\s+yourself)\b",
+                r"\b(tell\s+me\s+about\s+yourself)\b",
+                # Closing greetings (could be mid or end conversation)
+                r"\b(goodbye|bye|farewell|see\s+you|take\s+care)\b",
+                r"\b(have\s+a\s+(good|great|nice)\s+(day|night|time))\b",
+                r"\b(until\s+next\s+time)\b",
+                r"\b(catch\s+you\s+later)\b",
+                # Polite expressions
+                r"\b(thank\s+you|thanks|much\s+appreciated)\b",
+                r"\b(you\'?re\s+(welcome|awesome|great|helpful))\b",
+            ]
+
+            import re
+
+            # Clean the question for pattern matching
+            question_lower = question.lower().strip()
+
+            # Check if the message matches any greeting pattern
+            is_greeting = False
+            for pattern in greeting_patterns:
+                if re.search(pattern, question_lower, re.IGNORECASE):
+                    is_greeting = True
+                    break
+
+            # Additional check for very short messages that might be greetings
+            if not is_greeting and len(question_lower) <= 20:
+                simple_greetings = [
+                    "hi",
+                    "hello",
+                    "hey",
+                    "yo",
+                    "sup",
+                    "morning",
+                    "evening",
+                    "afternoon",
+                    "night",
+                    "goodbye",
+                    "bye",
+                    "thanks",
+                    "thank you",
+                ]
+                for greeting in simple_greetings:
+                    if greeting in question_lower:
+                        is_greeting = True
+                        break
+
+            if not is_greeting:
+                return None  # Not a greeting
+
+            # Save the user message first
+            user_message = ChatMessage.objects.create(
+                session=session, message_type="user", content=question
+            )
+
+            # Generate appropriate greeting response
+            response_content = self._generate_greeting_response(question_lower, session)
+
+            # Save the assistant response
+            assistant_message = ChatMessage.objects.create(
+                session=session,
+                message_type="assistant",
+                content=response_content,
+                confidence_score=1.0,  # High confidence for greetings
+            )
+
+            # Update session
+            session.last_message_at = timezone.now()
+            if not session.title or session.title == "New Chat":
+                session.title = "Greeting"
+            session.save()
+
+            return {
+                "success": True,
+                "answer": response_content,
+                "session_id": session.id,
+                "session_title": session.title,
+                "message_id": assistant_message.id,
+                "confidence_score": 1.0,
+                "source_type": "greeting",
+                "greeting_detected": True,
+            }
+
+        except Exception as e:
+            logger.error(f"Error handling greeting: {e}")
+            return None
+
+    def _generate_greeting_response(
+        self, question_lower: str, session: ChatSession
+    ) -> str:
+        """Generate appropriate greeting responses"""
+        import random
+        from datetime import datetime
+
+        # Get user's first name if available
+        user_name = session.user.first_name if session.user.first_name else "there"
+
+        # Get current time for time-based greetings
+        current_hour = datetime.now().hour
+
+        if any(word in question_lower for word in ["morning", "good morning"]):
+            responses = [
+                f"Good morning, {user_name}! ☀️ How can I help you today?",
+                f"Morning, {user_name}! Hope you're having a great start to your day. What can I assist you with?",
+                f"Good morning! ☀️ Ready to tackle the day? How can I support you?",
+            ]
+        elif any(word in question_lower for word in ["afternoon", "good afternoon"]):
+            responses = [
+                f"Good afternoon, {user_name}! 🌤️ How's your day going? What can I help you with?",
+                f"Afternoon, {user_name}! Hope you're having a productive day. How can I assist you?",
+                f"Good afternoon! How can I make your day better?",
+            ]
+        elif any(
+            word in question_lower
+            for word in ["evening", "good evening", "night", "good night"]
+        ):
+            responses = [
+                f"Good evening, {user_name}! 🌙 How can I help you tonight?",
+                f"Evening, {user_name}! Hope you've had a great day. What can I assist you with?",
+                f"Good evening! How can I help you wind down your day?",
+            ]
+        elif any(
+            word in question_lower
+            for word in ["how are you", "how you doing", "how is it going", "what's up"]
+        ):
+            responses = [
+                f"I'm doing great, thank you for asking, {user_name}! 😊 I'm here and ready to help. How are you doing?",
+                f"I'm fantastic, thanks! Always excited to help students like you. How can I assist you today?",
+                f"I'm doing well, {user_name}! Thanks for asking. I'm here to help with your studies. What's on your mind?",
+            ]
+        elif any(
+            word in question_lower
+            for word in [
+                "who are you",
+                "what are you",
+                "introduce yourself",
+                "tell me about yourself",
+            ]
+        ):
+            responses = [
+                f"Hi {user_name}! I'm Aimy, your AI study assistant. I'm here to help you with your academic questions, documents, and reminders. I can analyze your study materials, answer questions, and even set reminders for important events. How can I help you today? 🎓",
+                f"Hello! I'm Aimy, designed to be your personal AI academic companion. I can help you understand your course materials, answer questions about uploaded documents, and keep you organized with reminders. What would you like to work on? 📚",
+                f"Nice to meet you, {user_name}! I'm Aimy, your intelligent study buddy. I specialize in helping students like you with document analysis, answering academic questions, and staying organized. Ready to dive into some learning? ✨",
+            ]
+        elif any(
+            word in question_lower
+            for word in [
+                "goodbye",
+                "bye",
+                "farewell",
+                "see you",
+                "take care",
+                "until next time",
+                "catch you later",
+            ]
+        ):
+            responses = [
+                f"Goodbye, {user_name}! Take care and good luck with your studies! 👋",
+                f"See you later, {user_name}! Don't hesitate to come back if you need any help. Have a great day! 🌟",
+                f"Farewell! Remember, I'm always here when you need academic support. Take care! 📖",
+                f"Bye for now, {user_name}! Hope our chat was helpful. See you next time! ✨",
+            ]
+        elif any(
+            word in question_lower
+            for word in ["thank you", "thanks", "much appreciated"]
+        ):
+            responses = [
+                f"You're very welcome, {user_name}! 😊 Happy to help anytime!",
+                f"My pleasure, {user_name}! That's what I'm here for. Feel free to ask if you need anything else! 🌟",
+                f"Glad I could help! Don't hesitate to reach out whenever you need academic support, {user_name}! 📚",
+            ]
+        elif any(
+            word in question_lower
+            for word in [
+                "you're welcome",
+                "you're awesome",
+                "you're great",
+                "you're helpful",
+            ]
+        ):
+            responses = [
+                f"Thank you so much, {user_name}! That really means a lot! 😊 I love helping students succeed!",
+                f"Aww, thanks {user_name}! You just made my day! I'm always here to support your learning journey! ✨",
+                f"You're too kind, {user_name}! I really enjoy being part of your academic success! 🎓",
+            ]
+        else:
+            # General greeting responses
+            if current_hour < 12:
+                time_greeting = "Good morning"
+                emoji = "☀️"
+            elif current_hour < 17:
+                time_greeting = "Good afternoon"
+                emoji = "🌤️"
+            else:
+                time_greeting = "Good evening"
+                emoji = "🌙"
+
+            responses = [
+                f"Hello, {user_name}! {emoji} I'm Aimy, your AI study assistant. How can I help you today?",
+                f"Hi there, {user_name}! Great to see you! I'm here to help with your studies. What can I assist you with? 😊",
+                f"{time_greeting}, {user_name}! {emoji} I'm Aimy, ready to help you with your academic needs. What's on your mind?",
+                f"Hey {user_name}! Welcome! I'm here to help you with documents, questions, and reminders. How can I support your studies today? 📚",
+                f"Hello! I'm Aimy, your friendly AI academic assistant. Ready to help you learn and stay organized! What can I do for you, {user_name}? ✨",
+            ]
+
+        return random.choice(responses)
 
     def _handle_reminder_request(
         self, question: str, session: ChatSession, user_id: int
