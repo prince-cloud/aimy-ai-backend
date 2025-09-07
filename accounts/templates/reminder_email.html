@@ -258,9 +258,6 @@
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-            <div class="logo-container">
-                <div class="aimy-logo">🤖</div>
-            </div>
             <h1>{{ app_name }}</h1>
             <div class="subtitle">AI-Powered Reminder Service</div>
         </div>
@@ -352,7 +349,7 @@
             <div class="footer-text" style="font-size: 12px; margin-top: 20px;">
                 © {{ current_year }} {{ app_name }}. All rights reserved.
                 <br>
-                This email was sent to {{ user.email }} because you requested a reminder.
+                This email was sent to {{ user_email }} because you requested a reminder.
             </div>
         </div>
     </div>

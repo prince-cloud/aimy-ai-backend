@@ -107,6 +107,7 @@ def send_reminder_email(reminder: Reminder):
         # Prepare payload for email template
         payload = {
             "user_name": user_name,
+            "user_email": reminder.user.email,
             "reminder_title": reminder.title,
             "reminder_description": reminder.description
             or "No additional details provided.",
