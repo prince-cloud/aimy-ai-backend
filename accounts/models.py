@@ -58,6 +58,12 @@ class CustomUser(AbstractUser):
         null=True,
         help_text="Phone number for SMS notifications (include country code, e.g., +1234567890)",
     )
+    profile_image = models.ImageField(
+        upload_to="profile_images/",
+        blank=True,
+        null=True,
+        help_text="Profile image for the user",
+    )
 
     def __str__(self):
         return self.email

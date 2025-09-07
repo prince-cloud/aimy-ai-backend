@@ -151,6 +151,8 @@ class UserSerializer(serializers.ModelSerializer):
             "department",
             "college",
             "year_of_study",
+            "phone_number",
+            "profile_image",
         )
 
 
@@ -330,3 +332,87 @@ class VerifyOTPSerializer(serializers.Serializer):
         if cache_otp_value != otp:
             raise exceptions.InvalidOTPException()
         return self.token
+
+
+class ProfileImageUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating user profile image"""
+
+    class Meta:
+        model = CustomUser
+        fields = ["profile_image"]
+
+    def validate_profile_image(self, value):
+        """Validate uploaded profile image"""
+        if value:
+            # Check file size (max 5MB)
+            max_size = 5 * 1024 * 1024  # 5MB
+            if value.size > max_size:
+                raise serializers.ValidationError("Image size must be less than 5MB")
+
+            # Check file type
+            allowed_types = ["jpg", "jpeg", "png", "gif", "webp"]
+            file_extension = value.name.split(".")[-1].lower()
+            if file_extension not in allowed_types:
+                raise serializers.ValidationError(
+                    f"Image type must be one of: {', '.join(allowed_types)}"
+                )
+
+        return value
+
+    def update(self, instance, validated_data):
+        """Update user profile image"""
+        # Delete old profile image if it exists and a new one is being uploaded
+        if "profile_image" in validated_data and instance.profile_image:
+            try:
+                # Delete the old file from storage
+                instance.profile_image.delete(save=False)
+            except Exception as e:
+                # Log error but don't fail the update
+                logger.error(f"Failed to delete old profile image: {e}")
+
+        return super().update(instance, validated_data)
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating user profile information (excluding sensitive fields)"""
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            "first_name",
+            "last_name",
+            "phone_number",
+            "year_of_study",
+            "profile_image",
+        ]
+
+    def validate_profile_image(self, value):
+        """Validate uploaded profile image"""
+        if value:
+            # Check file size (max 5MB)
+            max_size = 5 * 1024 * 1024  # 5MB
+            if value.size > max_size:
+                raise serializers.ValidationError("Image size must be less than 5MB")
+
+            # Check file type
+            allowed_types = ["jpg", "jpeg", "png", "gif", "webp"]
+            file_extension = value.name.split(".")[-1].lower()
+            if file_extension not in allowed_types:
+                raise serializers.ValidationError(
+                    f"Image type must be one of: {', '.join(allowed_types)}"
+                )
+
+        return value
+
+    def update(self, instance, validated_data):
+        """Update user profile with proper image handling"""
+        # Handle profile image deletion and replacement
+        if "profile_image" in validated_data and instance.profile_image:
+            try:
+                # Delete the old file from storage
+                instance.profile_image.delete(save=False)
+            except Exception as e:
+                # Log error but don't fail the update
+                logger.error(f"Failed to delete old profile image: {e}")
+
+        return super().update(instance, validated_data)

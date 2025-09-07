@@ -150,7 +150,15 @@ class CustomUserAdmin(ModelAdmin):
         (None, {"fields": ("username", "password")}),
         (
             "Personal info",
-            {"fields": ("first_name", "last_name", "email", "phone_number")},
+            {
+                "fields": (
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "phone_number",
+                    "profile_image",
+                )
+            },
         ),
         (
             "Academic Information",
@@ -198,6 +206,7 @@ class CustomUserAdmin(ModelAdmin):
                     "index_number",
                     "department",
                     "year_of_study",
+                    "profile_image",
                 ),
             },
         ),

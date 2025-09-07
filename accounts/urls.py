@@ -16,6 +16,12 @@ router.register("departments", views.DepartmentViewset, basename="departments")
 urlpatterns = [
     path("signup/", views.SignUpViewset.as_view(), name="signup"),
     path("profile/", views.ProfileView.as_view(), name="profile"),
+    path("profile/update/", views.ProfileUpdateView.as_view(), name="profile-update"),
+    path(
+        "profile/image/",
+        views.ProfileImageUpdateView.as_view(),
+        name="profile-image-update",
+    ),
     path(
         "signup/verify-otp/",
         views.VerifyOTPViewset.as_view(),

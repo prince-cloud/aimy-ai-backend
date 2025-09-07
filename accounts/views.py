@@ -9,6 +9,7 @@ from django.conf import settings
 from dj_rest_auth.views import LoginView as DJREST_LoginView
 from rest_framework.views import APIView
 from rest_framework import viewsets
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Department
 
 
@@ -94,3 +95,129 @@ class ProfileView(APIView):
             context={"request": request},
         )
         return Response(data=serializer.data)
+
+
+class ProfileImageUpdateView(APIView):
+    """Update user profile image"""
+
+    serializer_class = serializers.ProfileImageUpdateSerializer
+    permission_classes = (rest_permissions.IsAuthenticated,)
+    parser_classes = [MultiPartParser, FormParser]
+
+    def patch(self, request):
+        """Update profile image"""
+        user = request.user
+        serializer = serializers.ProfileImageUpdateSerializer(
+            instance=user,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            # Return updated user data
+            user_serializer = serializers.UserSerializer(
+                instance=user,
+                context={"request": request},
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Profile image updated successfully",
+                    "user": user_serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                "success": False,
+                "message": "Failed to update profile image",
+                "errors": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def delete(self, request):
+        """Delete profile image"""
+        user = request.user
+
+        if user.profile_image:
+            try:
+                # Delete the file from storage
+                user.profile_image.delete(save=False)
+                user.profile_image = None
+                user.save()
+
+                return Response(
+                    {
+                        "success": True,
+                        "message": "Profile image deleted successfully",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            except Exception as e:
+                return Response(
+                    {
+                        "success": False,
+                        "message": f"Failed to delete profile image: {str(e)}",
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "No profile image to delete",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class ProfileUpdateView(APIView):
+    """Update user profile information"""
+
+    serializer_class = serializers.UserProfileUpdateSerializer
+    permission_classes = (rest_permissions.IsAuthenticated,)
+    parser_classes = [MultiPartParser, FormParser]
+
+    def patch(self, request):
+        """Update profile information"""
+        user = request.user
+        serializer = serializers.UserProfileUpdateSerializer(
+            instance=user,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            # Return updated user data
+            user_serializer = serializers.UserSerializer(
+                instance=user,
+                context={"request": request},
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Profile updated successfully",
+                    "user": user_serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                "success": False,
+                "message": "Failed to update profile",
+                "errors": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
