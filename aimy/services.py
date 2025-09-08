@@ -63,6 +63,11 @@ class DocumentProcessingService:
                 logger.info(f"Document {document.id} already processed")
                 return True
 
+            # Check for duplicate documents (same file hash)
+            if self.handle_duplicate_document(document):
+                logger.info(f"Document {document.id} linked to existing vector store")
+                return True
+
             # Update processing status
             queue_item, created = ProcessingQueue.objects.get_or_create(
                 document=document, defaults={"status": "processing"}
@@ -163,7 +168,7 @@ class DocumentProcessingService:
                     vector_store = Chroma.from_documents(
                         documents=chunks,
                         embedding=self.embeddings,
-                        collection_name=f"doc_{document.id}",
+                        collection_name=f"doc_{document.file_hash[:16]}",
                         client=client,
                     )
                     vector_store_type = "chroma"
@@ -420,6 +425,51 @@ class DocumentProcessingService:
             file_hash=file_hash, user_id=user_id, is_processed=True
         ).first()
 
+    def handle_duplicate_document(self, new_document: Document) -> bool:
+        """
+        Handle a document that might be a duplicate.
+        If duplicate exists and is processed, mark new document as processed too.
+        Returns True if duplicate was found and handled, False otherwise.
+        """
+        try:
+            # Check if a processed document with same hash already exists for this user
+            existing_doc = self.check_document_exists(
+                new_document.file_hash, new_document.user_id
+            )
+
+            if existing_doc:
+                logger.info(
+                    f"Found existing processed document {existing_doc.id} with same hash as {new_document.id}"
+                )
+
+                # Mark the new document as processed since vector store already exists
+                new_document.is_processed = True
+                new_document.processed_at = timezone.now()
+                new_document.processing_error = None
+                new_document.save()
+
+                # Copy chunks from existing document to new document for consistency
+                existing_chunks = DocumentChunk.objects.filter(document=existing_doc)
+                for chunk in existing_chunks:
+                    DocumentChunk.objects.create(
+                        document=new_document,
+                        content=chunk.content,
+                        chunk_index=chunk.chunk_index,
+                        page_number=chunk.page_number,
+                        vector_id=f"{new_document.index_name}_chunk_{chunk.chunk_index}",
+                    )
+
+                logger.info(
+                    f"Successfully linked document {new_document.id} to existing vector store (hash: {new_document.file_hash[:16]})"
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error handling duplicate document {new_document.id}: {e}")
+            return False
+
     def process_generic_file(self, generic_file: GenericFile) -> bool:
         """Process a generic file and add it to vector store"""
         try:
@@ -493,7 +543,7 @@ class DocumentProcessingService:
                 vector_store = Chroma.from_documents(
                     documents=chunks,
                     embedding=self.embeddings,
-                    collection_name=f"generic_{generic_file.id}",
+                    collection_name=f"generic_{generic_file.file_hash[:16]}",
                     client=client,
                 )
                 logger.info(
@@ -1727,7 +1777,7 @@ class ChatService:
                 client = chromadb.PersistentClient(path="./chroma_db")
 
                 # Check if collection exists and has data
-                collection_name = f"doc_{doc.id}"
+                collection_name = f"doc_{doc.file_hash[:16]}"
                 try:
                     collection = client.get_collection(name=collection_name)
                     count = collection.count()
@@ -1785,7 +1835,7 @@ class ChatService:
             client = chromadb.PersistentClient(path="./chroma_db")
 
             # Check if collection exists and has data
-            collection_name = f"generic_{generic_file.id}"
+            collection_name = f"generic_{generic_file.file_hash[:16]}"
             try:
                 collection = client.get_collection(name=collection_name)
                 count = collection.count()
