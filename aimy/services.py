@@ -369,6 +369,51 @@ class DocumentProcessingService:
             # Return a safe fallback
             return content.replace("\x00", "") if content else ""
 
+    def verify_and_repair_document_vector_store(self, document: Document) -> bool:
+        """
+        Verify if a document's vector store exists and is accessible.
+        If not, attempt to repair by reprocessing the document.
+        """
+        try:
+            # Check if document is marked as processed
+            if not document.is_processed:
+                logger.info(f"Document {document.id} is not marked as processed")
+                return False
+
+            # Try to load the vector store
+            vector_store = self._load_document_vector_store(document)
+
+            if vector_store:
+                logger.info(f"Document {document.id} vector store is working correctly")
+                return True
+            else:
+                logger.warning(
+                    f"Document {document.id} vector store failed to load, attempting repair"
+                )
+
+                # Mark document as not processed to trigger reprocessing
+                document.is_processed = False
+                document.processed_at = None
+                document.processing_error = None
+                document.save()
+
+                # Reprocess the document
+                success = self.process_document(document)
+                if success:
+                    logger.info(
+                        f"Successfully repaired document {document.id} vector store"
+                    )
+                    return True
+                else:
+                    logger.error(
+                        f"Failed to repair document {document.id} vector store"
+                    )
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error verifying/repairing document {document.id}: {e}")
+            return False
+
     def check_document_exists(self, file_hash: str, user_id: int) -> Optional[Document]:
         """Check if document with same hash already exists for user"""
         return Document.objects.filter(
@@ -970,9 +1015,22 @@ class ChatService:
                 logger.warning(
                     f"No vector stores available for user {user_id}, document {document_id}"
                 )
-                return self._create_error_response(
-                    f"No document with ID {document_id} available for search"
-                )
+
+                # Check if document exists and provide specific error message
+                try:
+                    doc = Document.objects.get(id=document_id, user_id=user_id)
+                    if not doc.is_processed:
+                        return self._create_error_response(
+                            f"Document '{doc.title}' is still being processed. Please wait a moment and try again."
+                        )
+                    else:
+                        return self._create_error_response(
+                            f"Document '{doc.title}' is processed but vector store could not be loaded. Please try re-uploading the document."
+                        )
+                except Document.DoesNotExist:
+                    return self._create_error_response(
+                        f"Document with ID {document_id} does not exist or you don't have access to it."
+                    )
 
             # Search for relevant content in the specific document
             relevant_docs = self._search_documents(question, vector_stores, max_results)
@@ -1555,6 +1613,22 @@ class ChatService:
                 f"Found {documents.count()} processed documents for user {user_id}, document_id {document_id}"
             )
 
+            # Check if document exists at all (processed or not)
+            all_documents = Document.objects.filter(id=document_id, user_id=user_id)
+            if all_documents.exists():
+                doc = all_documents.first()
+                logger.info(
+                    f"Document {document_id} exists: title='{doc.title}', is_processed={doc.is_processed}"
+                )
+                if not doc.is_processed:
+                    logger.warning(
+                        f"Document {document_id} exists but is not yet processed. Processing status may be pending."
+                    )
+            else:
+                logger.error(
+                    f"Document {document_id} does not exist for user {user_id}"
+                )
+
             for doc in documents:
                 vector_store = self._load_document_vector_store(doc)
                 if vector_store:
@@ -1634,7 +1708,7 @@ class ChatService:
                     logger.warning(
                         f"Chroma collection {collection_name} exists but is empty"
                     )
-                    raise Exception("Collection is empty")
+                    raise Exception(f"Collection {collection_name} is empty")
 
             except Exception as collection_error:
                 logger.warning(
@@ -1648,9 +1722,20 @@ class ChatService:
                 collection_name=collection_name,
                 client=client,
             )
-            logger.info(
-                f"Successfully loaded Chroma vector store for document {doc.id}"
-            )
+
+            # Verify the vector store is actually usable
+            try:
+                # Test a simple similarity search to ensure it's working
+                test_results = vector_store.similarity_search("test", k=1)
+                logger.info(
+                    f"Successfully loaded and verified Chroma vector store for document {doc.id} (found {len(test_results)} test results)"
+                )
+            except Exception as test_error:
+                logger.warning(
+                    f"Vector store test failed for document {doc.id}: {test_error}"
+                )
+                # Don't fail here, just log the warning
+
             return vector_store
 
         except Exception as chroma_error:
