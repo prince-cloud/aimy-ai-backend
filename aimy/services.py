@@ -116,71 +116,71 @@ class DocumentProcessingService:
                     }
                 )
 
-            # Try to create vector store with chunks - prioritize Chroma over Redis
+            # Try to create vector store with chunks - prioritize Redis over Chroma
             vector_store = None
             vector_store_type = None
 
-            # Try Chroma first (prioritized over Redis)
+            # Try Redis first (prioritized over Chroma)
             try:
                 logger.info(
-                    f"Attempting to create Chroma vector store for document: {document.id}"
+                    f"Attempting to create Redis vector store with index: {document.index_name}"
                 )
-
-                # Create Chroma client with persistent directory
-                import chromadb
-
-                client = chromadb.PersistentClient(path="./chroma_db")
-
-                vector_store = Chroma.from_documents(
-                    documents=chunks,
-                    embedding=self.embeddings,
-                    collection_name=f"doc_{document.id}",
-                    client=client,
+                config = RedisConfig(
+                    index_name=document.index_name,
+                    redis_url=REDIS_URL,
+                    metadata_schema=[
+                        {"name": "document_id", "type": "tag"},
+                        {"name": "chunk_index", "type": "tag"},
+                        {"name": "page_number", "type": "tag"},
+                    ],
                 )
-                vector_store_type = "chroma"
+                vector_store = RedisVectorStore(self.embeddings, config=config)
+                vector_store_type = "redis"
                 logger.info(
-                    f"Chroma vector store created successfully for document: {document.id}"
+                    f"Redis vector store created successfully for index: {document.index_name}"
                 )
-            except Exception as chroma_error:
+            except Exception as redis_error:
                 logger.warning(
-                    f"Chroma vector store creation failed: {str(chroma_error)}"
+                    f"Redis vector store creation failed: {str(redis_error)}"
                 )
-                logger.warning(f"Chroma error type: {type(chroma_error).__name__}")
-                logger.warning(f"Chroma error details: {str(chroma_error)}")
+                logger.warning(f"Redis error type: {type(redis_error).__name__}")
+                logger.warning(f"Redis error details: {str(redis_error)}")
                 import traceback
 
-                logger.warning(f"Chroma error traceback: {traceback.format_exc()}")
+                logger.warning(f"Redis error traceback: {traceback.format_exc()}")
 
-                # Fallback to Redis vector store
+                # Fallback to Chroma vector store
                 try:
                     logger.info(
-                        f"Attempting to create Redis vector store with index: {document.index_name}"
+                        f"Attempting to create Chroma vector store for document: {document.id}"
                     )
-                    config = RedisConfig(
-                        index_name=document.index_name,
-                        redis_url=REDIS_URL,
-                        metadata_schema=[
-                            {"name": "document_id", "type": "tag"},
-                            {"name": "chunk_index", "type": "tag"},
-                            {"name": "page_number", "type": "tag"},
-                        ],
+
+                    # Create Chroma client with persistent directory
+                    import chromadb
+
+                    client = chromadb.PersistentClient(path="./chroma_db")
+
+                    vector_store = Chroma.from_documents(
+                        documents=chunks,
+                        embedding=self.embeddings,
+                        collection_name=f"doc_{document.id}",
+                        client=client,
                     )
-                    vector_store = RedisVectorStore(self.embeddings, config=config)
-                    vector_store_type = "redis"
+                    vector_store_type = "chroma"
                     logger.info(
-                        f"Redis vector store created successfully for index: {document.index_name}"
+                        f"Chroma vector store created successfully for document: {document.id}"
                     )
-                except Exception as redis_error:
+                except Exception as chroma_error:
                     logger.error(
-                        f"Redis vector store creation failed: {str(redis_error)}"
+                        f"Chroma vector store creation failed: {str(chroma_error)}"
                     )
-                    logger.error(f"Redis error type: {type(redis_error).__name__}")
-                    logger.error(f"Redis error details: {str(redis_error)}")
+                    logger.error(f"Chroma error type: {type(chroma_error).__name__}")
+                    logger.error(f"Chroma error details: {str(chroma_error)}")
                     import traceback
 
-                    logger.error(f"Redis error traceback: {traceback.format_exc()}")
+                    logger.error(f"Chroma error traceback: {traceback.format_exc()}")
                     raise Exception(
-                        f"Vector store creation error (both Chroma and Redis failed): {str(chroma_error)} -> {str(redis_error)}"
+                        f"Vector store creation error (both Redis and Chroma failed): {str(redis_error)} -> {str(chroma_error)}"
                     )
 
             if vector_store is None:
@@ -1687,80 +1687,91 @@ class ChatService:
         return vector_stores
 
     def _load_document_vector_store(self, doc: Document):
-        """Load vector store for a specific document - prioritize Chroma over Redis"""
+        """Load vector store for a specific document - prioritize Redis over Chroma"""
         try:
-            # Try Chroma first (prioritized over Redis)
-            import chromadb
-
-            # Create Chroma client with persistent directory
-            client = chromadb.PersistentClient(path="./chroma_db")
-
-            # Check if collection exists and has data
-            collection_name = f"doc_{doc.id}"
-            try:
-                collection = client.get_collection(name=collection_name)
-                count = collection.count()
-                logger.info(
-                    f"Chroma collection {collection_name} exists with {count} documents"
-                )
-
-                if count == 0:
-                    logger.warning(
-                        f"Chroma collection {collection_name} exists but is empty"
-                    )
-                    raise Exception(f"Collection {collection_name} is empty")
-
-            except Exception as collection_error:
-                logger.warning(
-                    f"Chroma collection {collection_name} not found or empty: {str(collection_error)}"
-                )
-                raise collection_error
-
-            # Create Chroma vector store
-            vector_store = Chroma(
-                embedding_function=self.embeddings,
-                collection_name=collection_name,
-                client=client,
+            # Try Redis first (prioritized over Chroma)
+            config = RedisConfig(
+                index_name=doc.index_name,
+                redis_url=REDIS_URL,
+                metadata_schema=[
+                    {"name": "document_id", "type": "tag"},
+                    {"name": "chunk_index", "type": "tag"},
+                    {"name": "page_number", "type": "tag"},
+                ],
             )
+            vector_store = RedisVectorStore(self.embeddings, config=config)
 
-            # Verify the vector store is actually usable
+            # Verify the Redis vector store is actually usable
             try:
                 # Test a simple similarity search to ensure it's working
                 test_results = vector_store.similarity_search("test", k=1)
                 logger.info(
-                    f"Successfully loaded and verified Chroma vector store for document {doc.id} (found {len(test_results)} test results)"
-                )
-            except Exception as test_error:
-                logger.warning(
-                    f"Vector store test failed for document {doc.id}: {test_error}"
-                )
-                # Don't fail here, just log the warning
-
-            return vector_store
-
-        except Exception as chroma_error:
-            logger.warning(
-                f"Chroma vector store failed for document {doc.id}: {str(chroma_error)}"
-            )
-            # Try Redis as fallback
-            try:
-                config = RedisConfig(
-                    index_name=doc.index_name,
-                    redis_url=REDIS_URL,
-                    metadata_schema=[
-                        {"name": "document_id", "type": "tag"},
-                        {"name": "chunk_index", "type": "tag"},
-                        {"name": "page_number", "type": "tag"},
-                    ],
-                )
-                vector_store = RedisVectorStore(self.embeddings, config=config)
-                logger.info(
-                    f"Successfully loaded Redis vector store for document {doc.id}"
+                    f"Successfully loaded and verified Redis vector store for document {doc.id} (found {len(test_results)} test results)"
                 )
                 return vector_store
-            except Exception as redis_error:
+            except Exception as test_error:
+                logger.warning(
+                    f"Redis vector store test failed for document {doc.id}: {test_error}"
+                )
+                raise test_error  # Fail and try Chroma
+
+        except Exception as redis_error:
+            logger.warning(
+                f"Redis vector store failed for document {doc.id}: {str(redis_error)}"
+            )
+            # Try Chroma as fallback
+            try:
+                import chromadb
+
+                # Create Chroma client with persistent directory
+                client = chromadb.PersistentClient(path="./chroma_db")
+
+                # Check if collection exists and has data
+                collection_name = f"doc_{doc.id}"
+                try:
+                    collection = client.get_collection(name=collection_name)
+                    count = collection.count()
+                    logger.info(
+                        f"Chroma collection {collection_name} exists with {count} documents"
+                    )
+
+                    if count == 0:
+                        logger.warning(
+                            f"Chroma collection {collection_name} exists but is empty"
+                        )
+                        raise Exception(f"Collection {collection_name} is empty")
+
+                except Exception as collection_error:
+                    logger.warning(
+                        f"Chroma collection {collection_name} not found or empty: {str(collection_error)}"
+                    )
+                    raise collection_error
+
+                # Create Chroma vector store
+                vector_store = Chroma(
+                    embedding_function=self.embeddings,
+                    collection_name=collection_name,
+                    client=client,
+                )
+
+                # Verify the vector store is actually usable
+                try:
+                    # Test a simple similarity search to ensure it's working
+                    test_results = vector_store.similarity_search("test", k=1)
+                    logger.info(
+                        f"Successfully loaded and verified Chroma vector store for document {doc.id} (found {len(test_results)} test results)"
+                    )
+                except Exception as test_error:
+                    logger.warning(
+                        f"Chroma vector store test failed for document {doc.id}: {test_error}"
+                    )
+                    # Don't fail here, just log the warning
+
+                return vector_store
+
+            except Exception as chroma_error:
                 logger.error(
-                    f"Both Chroma and Redis failed for document {doc.id}: {str(chroma_error)} -> {str(redis_error)}"
+                    f"Both Redis and Chroma failed for document {doc.id}: {str(redis_error)} -> {str(chroma_error)}"
                 )
                 return None
 
