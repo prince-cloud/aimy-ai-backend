@@ -1113,6 +1113,7 @@ class ChatService:
             session.save()
 
             return {
+                "success": True,
                 "answer": response["answer"],
                 "confidence_score": response["confidence_score"],
                 "session_id": session.id,
@@ -1176,6 +1177,7 @@ class ChatService:
             session.save()
 
             return {
+                "success": True,
                 "answer": response["answer"],
                 "confidence_score": response["confidence_score"],
                 "session_id": session.id,
@@ -1240,6 +1242,7 @@ class ChatService:
             session.save()
 
             return {
+                "success": True,
                 "answer": response["answer"],
                 "confidence_score": response["confidence_score"],
                 "session_id": session.id,
@@ -1310,6 +1313,7 @@ class ChatService:
             session.save()
 
             return {
+                "success": True,
                 "answer": response["answer"],
                 "confidence_score": response["confidence_score"],
                 "session_id": session.id,
